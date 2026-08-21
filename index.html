@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="記帳本">
+<meta name="theme-color" content="#2a78d6">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>記帳本</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#f5f5f4;--surface:#fff;--border:#e1e0d9;--text:#0b0b0b;--muted:#898781;--sub:#52514e;--blue:#2a78d6;--green:#1d8a5c;--red:#c0392b;--purple:#4a3aa7;--amber:#b8860b;--r:10px}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.app{display:flex;flex-direction:column;height:100%;max-width:500px;margin:0 auto}
+/* top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem .5rem;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-shrink:0;padding-top:calc(.75rem + env(safe-area-inset-top))}
+.topbar h1{font-size:17px;font-weight:600;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:6px}
+.month-nav{display:flex;align-items:center;gap:2px}
+.mnbtn{background:none;border:1px solid var(--border);border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--sub)}
+.mlabel{font-size:12px;font-weight:600;min-width:68px;text-align:center;color:var(--text)}
+.sync-btn{background:none;border:1px solid var(--border);border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--sub);display:flex;align-items:center;gap:4px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#c3c2b7;flex-shrink:0}
+.sync-dot.ok{background:var(--green)}.sync-dot.err{background:var(--red)}.sync-dot.loading{background:var(--amber);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* tab bar */
+.tabbar{display:flex;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+.tabbtn{flex:1;display:flex;flex-direction:column;align-items:center;padding:6px 2px;cursor:pointer;border:none;background:none;gap:2px}
+.tabbtn .ico{font-size:20px}
+.tabbtn .lbl{font-size:10px;color:var(--muted)}
+.tabbtn.on .lbl{color:var(--blue);font-weight:600}
+/* panels */
+.panels{flex:1;overflow:hidden;position:relative}
+.panel{position:absolute;inset:0;overflow-y:auto;display:none;padding:12px 14px;padding-bottom:20px;-webkit-overflow-scrolling:touch}
+.panel.on{display:block}
+/* summary grid */
+.sum-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.625rem .875rem}
+.sum-label{font-size:10px;color:var(--muted);margin-bottom:2px}
+.sum-val{font-size:16px;font-weight:600}
+.c-pos{color:var(--green)}.c-neg{color:var(--red)}.c-blue{color:var(--blue)}.c-purple{color:var(--purple)}.c-amber{color:var(--amber)}
+/* cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px}
+/* type toggle */
+.type-tog{display:flex;background:#f0efec;border-radius:8px;padding:2px;margin-bottom:12px;gap:2px}
+.tbtn{flex:1;padding:6px 2px;font-size:12px;border:none;border-radius:6px;cursor:pointer;background:transparent;color:var(--sub);white-space:nowrap}
+.tbtn.on-exp{background:#fde8e8;color:var(--red)}
+.tbtn.on-inc{background:#e6f7ef;color:var(--green)}
+.tbtn.on-inv{background:#eeecfd;color:var(--purple)}
+.tbtn.on-xfr{background:#fff8e1;color:var(--amber)}
+/* form */
+.frow{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.fg{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.fg label{font-size:11px;color:var(--muted)}
+.fg input,.fg select{font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#fafaf9;color:var(--text);width:100%;-webkit-appearance:none;appearance:none}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--blue)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chip{padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--sub);cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--sub);color:#fff;border-color:var(--sub)}
+.chip.on-exp{background:var(--red);color:#fff;border-color:var(--red)}
+.chip.on-inc{background:var(--green);color:#fff;border-color:var(--green)}
+.chip.on-inv{background:var(--purple);color:#fff;border-color:var(--purple)}
+.chip.on-xfr{background:var(--amber);color:#fff;border-color:var(--amber)}
+.btn-primary{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-weight:600;margin-top:4px}
+.btn-sm{padding:5px 10px;font-size:11px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;color:var(--sub)}
+.btn-del{border-color:#f5c6c6;color:var(--red)}
+.ferr{font-size:12px;color:var(--red);margin-top:6px;display:none}
+/* tx list */
+.tx-list{display:flex;flex-direction:column;gap:6px}
+.tx{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 10px}
+.tx-ico{width:30px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.tx-info{flex:1;min-width:0}
+.tx-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-meta{font-size:10px;color:var(--muted);margin-top:1px}
+.tx-amt{font-size:13px;font-weight:600;white-space:nowrap}
+.delbtn{background:none;border:none;cursor:pointer;color:#c3c2b7;font-size:18px;flex-shrink:0;padding:2px;line-height:1}
+/* acct items */
+.acct-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 10px;margin-bottom:6px}
+.acct-name{font-size:13px;font-weight:500;flex:1}
+.acct-sub{font-size:11px;color:var(--muted);margin-top:1px}
+/* alerts */
+.alert{background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;color:#7a5c00}
+/* chart */
+.chart-tabs{display:flex;gap:6px;margin-bottom:12px}
+.ctab{padding:4px 12px;font-size:11px;border:1px solid var(--border);border-radius:99px;background:var(--surface);cursor:pointer;color:var(--sub)}
+.ctab.on{background:var(--sub);color:#fff;border-color:var(--sub)}
+.legend-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:11px;color:var(--sub)}
+.ldot{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:3px;vertical-align:middle}
+.pie-legend-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+/* section title */
+.sec-title{font-size:12px;color:var(--sub);font-weight:600;margin-bottom:8px;margin-top:4px}
+.empty{text-align:center;color:var(--muted);padding:2rem;font-size:13px}
+/* login overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:200}
+.login-card{background:var(--surface);border-radius:16px;padding:2rem 1.5rem;max-width:300px;width:90%;text-align:center}
+.login-card h2{font-size:20px;font-weight:600;margin-bottom:.5rem}
+.login-card p{font-size:13px;color:var(--sub);margin-bottom:1.25rem;line-height:1.7}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:9px;font-size:14px;cursor:pointer;font-weight:500;color:var(--text)}
+.btn-google svg{width:18px;height:18px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div id="login-overlay" class="overlay">
+  <div class="login-card">
+    <h2>💰 記帳本</h2>
+    <p>登入 Google 帳號以同步資料<br>資料存在你的 Google Sheets<br>手機電腦共用同一份</p>
+    <button class="btn-google" onclick="signIn()">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      使用 Google 帳號登入
+    </button>
+    <p style="margin-top:.75rem;font-size:11px;color:var(--muted)">首次需授權存取 Google Sheets</p>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none">
+  <div class="topbar">
+    <h1>💰 記帳本</h1>
+    <div class="topbar-right">
+      <div class="month-nav">
+        <button class="mnbtn" onclick="changeMonth(-1)">‹</button>
+        <div class="mlabel" id="mlabel"></div>
+        <button class="mnbtn" onclick="changeMonth(1)">›</button>
+      </div>
+      <button class="sync-btn" onclick="syncAll()">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span id="sync-label">同步</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="panels">
+    <!-- 新增 -->
+    <div class="panel on" id="panel-add">
+      <div id="cc-alerts-add"></div>
+      <div class="sum-grid">
+        <div class="sum-card"><div class="sum-label">本月結餘</div><div class="sum-val" id="s-bal">NT$0</div></div>
+        <div class="sum-card"><div class="sum-label">銀行總餘額</div><div class="sum-val c-blue" id="s-bank">NT$0</div></div>
+        <div class="sum-card"><div class="sum-label">本月收入</div><div class="sum-val c-pos" id="s-inc">NT$0</div></div>
+        <div class="sum-card"><div class="sum-label">本月支出</div><div class="sum-val c-neg" id="s-exp">NT$0</div></div>
+        <div class="sum-card"><div class="sum-label">信用卡本月</div><div class="sum-val c-amber" id="s-cc">NT$0</div></div>
+        <div class="sum-card"><div class="sum-label">投資總市值</div><div class="sum-val c-purple" id="s-inv">NT$0</div></div>
+      </div>
+      <div class="card">
+        <div class="type-tog">
+          <button class="tbtn on-exp" id="tbtn-exp" onclick="setType('expense')">支出</button>
+          <button class="tbtn" id="tbtn-inc" onclick="setType('income')">收入</button>
+          <button class="tbtn" id="tbtn-inv" onclick="setType('invest')">投資</button>
+          <button class="tbtn" id="tbtn-xfr" onclick="setType('transfer')">轉帳</button>
+        </div>
+        <div id="form-tx">
+          <div class="frow">
+            <div class="fg"><label>金額</label><input type="number" id="f-amt" placeholder="0" inputmode="decimal" oninput="clearE('ferr')"></div>
+            <div class="fg"><label>日期</label><input type="date" id="f-date"></div>
+          </div>
+          <div class="fg"><label>分類</label><div class="chips" id="f-cats"></div></div>
+          <div class="fg"><label>備註</label><input type="text" id="f-note" placeholder="可選"></div>
+          <div class="fg" id="pay-wrap"><label>付款帳戶</label><div class="chips" id="f-sources"></div></div>
+        </div>
+        <div id="form-invest" style="display:none">
+          <div class="frow">
+            <div class="fg"><label>股票名稱</label><input type="text" id="fi-name" oninput="clearE('ferr')"></div>
+            <div class="fg"><label>代號</label><input type="text" id="fi-ticker" placeholder="例：2330"></div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label>買入價</label><input type="number" id="fi-price" inputmode="decimal"></div>
+            <div class="fg"><label>股數</label><input type="number" id="fi-shares" inputmode="decimal"></div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label>目前市價</label><input type="number" id="fi-cur" inputmode="decimal" placeholder="選填"></div>
+            <div class="fg"><label>日期</label><input type="date" id="fi-date"></div>
+          </div>
+          <div class="fg"><label>扣款帳戶</label><div class="chips" id="fi-sources"></div></div>
+        </div>
+        <div id="form-transfer" style="display:none">
+          <div class="frow">
+            <div class="fg"><label>金額</label><input type="number" id="ft-amt" inputmode="decimal" oninput="clearE('ferr')"></div>
+            <div class="fg"><label>日期</label><input type="date" id="ft-date"></div>
+          </div>
+          <div class="fg"><label>從（轉出）</label><div class="chips" id="ft-from-chips"></div></div>
+          <div class="fg"><label>到（轉入）</label><div class="chips" id="ft-to-chips"></div></div>
+          <div class="fg"><label>備註</label><input type="text" id="ft-note" placeholder="可選"></div>
+        </div>
+        <button class="btn-primary" id="submit-btn" onclick="addEntry()">＋ 新增</button>
+        <div class="ferr" id="ferr"></div>
+      </div>
+    </div>
+
+    <!-- 明細 -->
+    <div class="panel" id="panel-list">
+      <div class="tx-list" id="tx-list"><div class="empty">本月還沒有記錄</div></div>
+    </div>
+
+    <!-- 圖表 -->
+    <div class="panel" id="panel-chart">
+      <div class="chart-tabs">
+        <button class="ctab on" onclick="switchChart('bar',this)">每日收支</button>
+        <button class="ctab" onclick="switchChart('pie',this)">支出分類</button>
+      </div>
+      <div id="chart-bar-wrap" class="card">
+        <div class="legend-row">
+          <span><span class="ldot" style="background:#1d8a5c"></span>收入</span>
+          <span><span class="ldot" style="background:#c0392b"></span>支出</span>
+        </div>
+        <div style="position:relative;width:100%;height:220px"><canvas id="chart-bar" role="img" aria-label="每日收支"></canvas></div>
+      </div>
+      <div id="chart-pie-wrap" class="card" style="display:none">
+        <div class="legend-row" id="pie-legend"></div>
+        <div style="position:relative;width:100%;height:220px"><canvas id="chart-pie" role="img" aria-label="支出分類"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 帳戶 -->
+    <div class="panel" id="panel-accts">
+      <div id="cc-alerts-acct"></div>
+      <div class="sec-title">銀行帳戶</div>
+      <div id="bank-list"></div>
+      <div class="sec-title">信用卡</div>
+      <div id="cc-list"></div>
+      <div class="card">
+        <div class="card-title">新增帳戶</div>
+        <div class="type-tog">
+          <button class="tbtn on-inc" id="acct-tbtn-bank" onclick="setAcctType('bank')">🏦 銀行</button>
+          <button class="tbtn" id="acct-tbtn-cc" onclick="setAcctType('cc')">💳 信用卡</button>
+        </div>
+        <div class="frow">
+          <div class="fg"><label>名稱</label><input type="text" id="a-name" oninput="clearE('aerr')"></div>
+          <div class="fg"><label id="a-bal-label">餘額</label><input type="number" id="a-bal" inputmode="decimal"></div>
+        </div>
+        <div class="fg" id="cc-due-wrap" style="display:none">
+          <label>自動扣款日（幾號）</label>
+          <input type="number" id="a-due" placeholder="例：25" inputmode="numeric" min="1" max="31">
+        </div>
+        <button class="btn-primary" onclick="addAcct()">＋ 新增</button>
+        <div class="ferr" id="aerr"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">帳戶間轉帳</div>
+        <div class="fg"><label>從（轉出）</label><div class="chips" id="xfr-from-chips"></div></div>
+        <div class="fg"><label>到（轉入）</label><div class="chips" id="xfr-to-chips"></div></div>
+        <div class="frow">
+          <div class="fg"><label>金額</label><input type="number" id="xfr-amt" inputmode="decimal" oninput="clearE('xfrerr')"></div>
+          <div class="fg"><label>日期</label><input type="date" id="xfr-date"></div>
+        </div>
+        <div class="fg"><label>備註</label><input type="text" id="xfr-note" placeholder="可選"></div>
+        <button class="btn-primary" style="background:var(--amber)" onclick="doTransfer()">執行轉帳</button>
+        <div class="ferr" id="xfrerr"></div>
+      </div>
+    </div>
+
+    <!-- 投資 -->
+    <div class="panel" id="panel-invest">
+      <div class="sum-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="sum-card"><div class="sum-label">總市值</div><div class="sum-val c-purple" id="inv-total-val">NT$0</div></div>
+        <div class="sum-card"><div class="sum-label">總損益</div><div class="sum-val" id="inv-total-gain">NT$0</div></div>
+      </div>
+      <div id="inv-list"><div class="empty">還沒有投資記錄</div></div>
+    </div>
+
+    <!-- 設定 -->
+    <div class="panel" id="panel-setting">
+      <div class="card">
+        <div class="card-title">Google Sheets 同步</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span class="sync-dot" id="sync-dot2"></span>
+          <span style="font-size:13px;color:var(--sub)" id="sync-label2">未登入</span>
+        </div>
+        <div id="login-btns">
+          <button class="btn-primary" onclick="signIn()">🔗 登入 Google 帳號</button>
+        </div>
+        <div id="logout-btns" style="display:none;gap:8px;flex-direction:column">
+          <button class="btn-primary" onclick="syncAll()">立即同步</button>
+          <button class="btn-primary" style="background:#fff;color:var(--sub);border:1px solid var(--border);margin-top:8px" onclick="signOut()">登出</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">分類管理</div>
+        <div class="sec-title">支出分類</div>
+        <div class="chips" id="exp-cats" style="margin-bottom:12px"></div>
+        <div class="sec-title">收入分類</div>
+        <div class="chips" id="inc-cats" style="margin-bottom:12px"></div>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:12px">點 × 可刪除自訂分類</p>
+        <div class="frow">
+          <div class="fg"><label>分類名稱</label><input type="text" id="nc-name" oninput="clearE('ncerr')"></div>
+          <div class="fg"><label>類型</label>
+            <select id="nc-type"><option value="expense">支出</option><option value="income">收入</option></select>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="addCat()">＋ 新增分類</button>
+        <div class="ferr" id="ncerr"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">其他</div>
+        <button class="btn-sm btn-del" onclick="clearLocal()">清除本機快取</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button class="tabbtn on" onclick="switchTab('add',this)" id="tab-add"><span class="ico">➕</span><span class="lbl">新增</span></button>
+    <button class="tabbtn" onclick="switchTab('list',this)" id="tab-list"><span class="ico">📋</span><span class="lbl">明細</span></button>
+    <button class="tabbtn" onclick="switchTab('chart',this)" id="tab-chart"><span class="ico">📊</span><span class="lbl">圖表</span></button>
+    <button class="tabbtn" onclick="switchTab('accts',this)" id="tab-accts"><span class="ico">🏦</span><span class="lbl">帳戶</span></button>
+    <button class="tabbtn" onclick="switchTab('invest',this)" id="tab-invest"><span class="ico">📈</span><span class="lbl">投資</span></button>
+    <button class="tabbtn" onclick="switchTab('setting',this)" id="tab-setting"><span class="ico">⚙️</span><span class="lbl">設定</span></button>
+  </div>
+</div>
+
+<script>
+const CLIENT_ID='909890286177-sfld5lrhrq2kibq324fkcpv6laq88v61.apps.googleusercontent.com';
+const SHEET_ID='17cmUl6R7vtKmMP3fVm6bQPK8uLB7sj5UAX_ZyJo2ftY';
+const CACHE_KEY='budget_pwa_v1';
+const PIE_COLORS=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#4a3aa7','#e34948'];
+const ICONS={餐飲:'🍜',交通:'🚌',購物:'🛍️',娛樂:'🎮',居住:'🏠',醫療:'💊',薪資:'💼',獎金:'🎁',副業:'💡',投資:'📈',其他:'📋',轉帳:'🔄'};
+const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const fmt=n=>'NT$'+Math.round(Math.abs(n)).toLocaleString();
+const today=()=>new Date().toISOString().slice(0,10);
+const iconFor=c=>ICONS[c]||'📌';
+
+let state={txs:[],accounts:[],investments:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};
+let curYear=new Date().getFullYear(),curMonth=new Date().getMonth();
+let txType='expense',acctType='bank',fCat='',fSource='',fiSource='',ftFrom='',ftTo='',xfrFrom='',xfrTo='';
+let barChart=null,pieChart=null,curChart='bar';
+let accessToken=null,syncing=false;
+
+function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth}));}catch(e){}}
+function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state;curYear=p.curYear;curMonth=p.curMonth;}}catch(e){}}
+function clearLocal(){if(confirm('清除本機快取？')){localStorage.removeItem(CACHE_KEY);location.reload();}}
+
+function signIn(){
+  const client=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID,scope:'https://www.googleapis.com/auth/spreadsheets',
+    callback:async(resp)=>{
+      if(resp.error){setSS('err','登入失敗');return;}
+      accessToken=resp.access_token;
+      document.getElementById('login-overlay').style.display='none';
+      document.getElementById('main-app').style.display='flex';
+      setSS('loading','初始化...');
+      await ensureSheets();await loadFromSheets();render();
+      document.getElementById('login-btns').style.display='none';
+      document.getElementById('logout-btns').style.display='flex';
+    }
+  });
+  client.requestAccessToken();
+}
+function signOut(){
+  if(accessToken)google.accounts.oauth2.revoke(accessToken);
+  accessToken=null;setSS('','未登入');
+  document.getElementById('login-btns').style.display='block';
+  document.getElementById('logout-btns').style.display='none';
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('login-overlay').style.display='flex';
+}
+
+async function shReq(method,path,body){
+  const r=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+SHEET_ID+path,{method,headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
+  return r.json();
+}
+async function ensureSheets(){
+  try{
+    const info=await shReq('GET','');
+    const existing=info.sheets.map(s=>s.properties.title);
+    const needed=['Transactions','Accounts','Investments','Categories'].filter(s=>!existing.includes(s));
+    if(needed.length){
+      await shReq('POST',':batchUpdate',{requests:needed.map(title=>({addSheet:{properties:{title}}}))});
+      const headers={Transactions:['id','type','amount','cat','note','date','source'],Accounts:['id','type','name','balance','dueDay'],Investments:['id','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name']};
+      await shReq('POST','/values:batchUpdate',{valueInputOption:'RAW',data:needed.map(s=>({range:`${s}!A1`,values:[headers[s]]}))});
+    }
+  }catch(e){setSS('err','初始化失敗');}
+}
+async function loadFromSheets(){
+  setSS('loading','載入中...');
+  try{
+    const ranges=['Transactions!A2:Z','Accounts!A2:Z','Investments!A2:Z','Categories!A2:Z'];
+    const res=await shReq('GET','/values:batchGet?ranges='+ranges.map(encodeURIComponent).join('&ranges='));
+    const vr=res.valueRanges;
+    state.txs=(vr[0]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'expense',amount:+r[2]||0,cat:r[3]||'',note:r[4]||'',date:r[5]||today(),source:r[6]||''}));
+    state.accounts=(vr[1]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'bank',name:r[2]||'',balance:+r[3]||0,dueDay:+r[4]||0}));
+    state.investments=(vr[2]?.values||[]).map(r=>({id:+r[0]||0,name:r[1]||'',ticker:r[2]||'',price:+r[3]||0,shares:+r[4]||0,curPrice:+r[5]||0,date:r[6]||today(),source:r[7]||''}));
+    const catRows=vr[3]?.values||[];
+    if(catRows.length){state.cats={expense:[],income:[]};catRows.forEach(r=>{if(r[0]==='expense'||r[0]==='income')state.cats[r[0]].push(r[1]||'');});}
+    state.nextId=Math.max(1,...state.txs.map(t=>t.id),...state.accounts.map(a=>a.id),...state.investments.map(i=>i.id))+1;
+    saveCache();setSS('ok','已同步');
+  }catch(e){setSS('err','載入失敗');loadCache();}
+}
+async function writeSheet(name,rows){
+  const range=name+'!A2:Z';
+  await shReq('PUT','/values/'+encodeURIComponent(range)+'?valueInputOption=RAW',{range,values:rows.length?rows:[['']]});
+}
+async function syncAll(){
+  if(syncing||!accessToken)return;
+  syncing=true;setSS('loading','同步中...');
+  try{
+    await writeSheet('Transactions',state.txs.map(t=>[t.id,t.type,t.amount,t.cat,t.note,t.date,t.source||'']));
+    await writeSheet('Accounts',state.accounts.map(a=>[a.id,a.type,a.name,a.balance,a.dueDay||'']));
+    await writeSheet('Investments',state.investments.map(i=>[i.id,i.name,i.ticker,i.price,i.shares,i.curPrice,i.date,i.source||'']));
+    await writeSheet('Categories',[...state.cats.expense.map(c=>['expense',c]),...state.cats.income.map(c=>['income',c])]);
+    saveCache();const t=new Date();setSS('ok',`已同步 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`);
+  }catch(e){setSS('err','同步失敗');}
+  syncing=false;
+}
+function setSS(s,l){
+  ['sync-dot','sync-dot2'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='sync-dot'+(s?' '+s:'');});
+  ['sync-label','sync-label2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=l;});
+}
+
+function clearE(id){const el=document.getElementById(id);if(el)el.style.display='none';}
+function showE(id,m){const el=document.getElementById(id);el.textContent=m;el.style.display='block';}
+function changeMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}saveCache();render();}
+function switchTab(tab,el){document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));document.getElementById('panel-'+tab).classList.add('on');if(tab==='chart'){const mt=monthTxs();curChart==='bar'?renderBarChart(mt):renderPieChart(mt);}}
+function switchChart(t,el){curChart=t;document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('chart-bar-wrap').style.display=t==='bar'?'block':'none';document.getElementById('chart-pie-wrap').style.display=t==='pie'?'block':'none';const mt=monthTxs();t==='bar'?renderBarChart(mt):renderPieChart(mt);}
+
+function setType(t){
+  txType=t;
+  document.getElementById('tbtn-exp').className='tbtn'+(t==='expense'?' on-exp':'');
+  document.getElementById('tbtn-inc').className='tbtn'+(t==='income'?' on-inc':'');
+  document.getElementById('tbtn-inv').className='tbtn'+(t==='invest'?' on-inv':'');
+  document.getElementById('tbtn-xfr').className='tbtn'+(t==='transfer'?' on-xfr':'');
+  document.getElementById('form-tx').style.display=(['expense','income'].includes(t))?'block':'none';
+  document.getElementById('form-invest').style.display=t==='invest'?'block':'none';
+  document.getElementById('form-transfer').style.display=t==='transfer'?'block':'none';
+  document.getElementById('pay-wrap').style.display=t==='expense'?'block':'none';
+  const btnColors={expense:'var(--red)',income:'var(--green)',invest:'var(--purple)',transfer:'var(--amber)'};
+  document.getElementById('submit-btn').style.background=btnColors[t]||'var(--blue)';
+  fCat='';fSource='';renderChips();
+}
+function setAcctType(t){
+  acctType=t;
+  document.getElementById('acct-tbtn-bank').className='tbtn'+(t==='bank'?' on-inc':'');
+  document.getElementById('acct-tbtn-cc').className='tbtn'+(t==='cc'?' on-exp':'');
+  document.getElementById('a-bal-label').textContent=t==='bank'?'餘額':'已使用額度';
+  document.getElementById('cc-due-wrap').style.display=t==='cc'?'block':'none';
+}
+
+function renderChips(){
+  const cats=txType==='income'?state.cats.income:state.cats.expense;
+  const onCls='on-'+{expense:'exp',income:'inc',invest:'inv',transfer:'xfr'}[txType];
+  const cEl=document.getElementById('f-cats');
+  if(cEl)cEl.innerHTML=cats.map(c=>`<span class="chip${(fCat||cats[0])===c?' '+onCls:''}" onclick="fCat='${c}';renderChips()">${c}</span>`).join('');
+  const banks=state.accounts.filter(a=>a.type==='bank');
+  const allAccts=state.accounts;
+  const sEl=document.getElementById('f-sources');
+  if(sEl)sEl.innerHTML=`<span class="chip${!fSource?' on':''}" onclick="fSource='';renderChips()">不指定</span>`+allAccts.map(a=>`<span class="chip${fSource===String(a.id)?' on':''}" onclick="fSource='${a.id}';renderChips()">${a.type==='cc'?'💳':'🏦'} ${a.name}</span>`).join('');
+  const fiEl=document.getElementById('fi-sources');
+  if(fiEl)fiEl.innerHTML=`<span class="chip${!fiSource?' on':''}" onclick="fiSource='';renderChips()">不指定</span>`+allAccts.map(a=>`<span class="chip${fiSource===String(a.id)?' on':''}" onclick="fiSource='${a.id}';renderChips()">${a.name}</span>`).join('');
+  const ffEl=document.getElementById('ft-from-chips');
+  if(ffEl)ffEl.innerHTML=banks.map(a=>`<span class="chip${ftFrom===String(a.id)?' on-xfr':''}" onclick="ftFrom='${a.id}';renderChips()">${a.name}</span>`).join('');
+  const ftEl=document.getElementById('ft-to-chips');
+  if(ftEl)ftEl.innerHTML=banks.map(a=>`<span class="chip${ftTo===String(a.id)?' on-xfr':''}" onclick="ftTo='${a.id}';renderChips()">${a.name}</span>`).join('');
+  const xfEl=document.getElementById('xfr-from-chips');
+  if(xfEl)xfEl.innerHTML=banks.map(a=>`<span class="chip${xfrFrom===String(a.id)?' on-xfr':''}" onclick="xfrFrom='${a.id}';renderChips()">${a.name}</span>`).join('');
+  const xtEl=document.getElementById('xfr-to-chips');
+  if(xtEl)xtEl.innerHTML=banks.map(a=>`<span class="chip${xfrTo===String(a.id)?' on-xfr':''}" onclick="xfrTo='${a.id}';renderChips()">${a.name}</span>`).join('');
+}
+
+function addEntry(){
+  if(txType==='invest')return addInvestment();
+  if(txType==='transfer')return addTransferTx();
+  const a=parseFloat(document.getElementById('f-amt').value);
+  if(!a||a<=0)return showE('ferr','請輸入有效金額');
+  const cat=fCat||(txType==='income'?state.cats.income[0]:state.cats.expense[0]);
+  const note=document.getElementById('f-note').value.trim();
+  const date=document.getElementById('f-date').value||today();
+  const id=state.nextId++;
+  state.txs.unshift({id,type:txType,amount:a,cat,note,date,source:fSource});
+  if(txType==='expense'&&fSource){const ac=state.accounts.find(x=>String(x.id)===fSource);if(ac)ac.balance=Math.round((ac.balance-a)*100)/100;}
+  document.getElementById('f-amt').value='';document.getElementById('f-note').value='';
+  saveCache();render();syncAll();alert('✅ 已新增');
+}
+function addInvestment(){
+  const name=document.getElementById('fi-name').value.trim();
+  if(!name)return showE('ferr','請輸入股票名稱');
+  const p=parseFloat(document.getElementById('fi-price').value)||0;
+  const s=parseFloat(document.getElementById('fi-shares').value)||0;
+  if(!p||!s)return showE('ferr','請輸入買入價格與股數');
+  const cur=parseFloat(document.getElementById('fi-cur').value)||p;
+  const id=state.nextId++;
+  state.investments.push({id,name,ticker:document.getElementById('fi-ticker').value.trim(),price:p,shares:s,curPrice:cur,date:document.getElementById('fi-date').value||today(),source:fiSource});
+  if(fiSource){const ac=state.accounts.find(x=>String(x.id)===fiSource);if(ac)ac.balance=Math.round((ac.balance-p*s)*100)/100;}
+  document.getElementById('fi-name').value='';document.getElementById('fi-ticker').value='';document.getElementById('fi-price').value='';document.getElementById('fi-shares').value='';document.getElementById('fi-cur').value='';
+  saveCache();render();syncAll();alert('✅ 投資已記錄');
+}
+function addTransferTx(){
+  const a=parseFloat(document.getElementById('ft-amt').value);
+  if(!a||a<=0)return showE('ferr','請輸入有效金額');
+  if(!ftFrom||!ftTo||ftFrom===ftTo)return showE('ferr','請選擇不同的帳戶');
+  const from=state.accounts.find(x=>String(x.id)===ftFrom);
+  const to=state.accounts.find(x=>String(x.id)===ftTo);
+  if(from)from.balance=Math.round((from.balance-a)*100)/100;
+  if(to)to.balance=Math.round((to.balance+a)*100)/100;
+  const id=state.nextId++;
+  state.txs.unshift({id,type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('ft-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('ft-date').value||today(),source:ftFrom});
+  document.getElementById('ft-amt').value='';document.getElementById('ft-note').value='';ftFrom='';ftTo='';
+  saveCache();render();syncAll();alert('✅ 轉帳完成');
+}
+function doTransfer(){
+  const a=parseFloat(document.getElementById('xfr-amt').value);
+  if(!a||a<=0)return showE('xfrerr','請輸入有效金額');
+  if(!xfrFrom||!xfrTo||xfrFrom===xfrTo)return showE('xfrerr','請選擇不同帳戶');
+  const from=state.accounts.find(x=>String(x.id)===xfrFrom);
+  const to=state.accounts.find(x=>String(x.id)===xfrTo);
+  if(from)from.balance=Math.round((from.balance-a)*100)/100;
+  if(to)to.balance=Math.round((to.balance+a)*100)/100;
+  const id=state.nextId++;
+  const note=document.getElementById('xfr-note').value.trim()||(from?.name||'')+'→'+(to?.name||'');
+  state.txs.unshift({id,type:'transfer',amount:a,cat:'轉帳',note,date:document.getElementById('xfr-date').value||today(),source:xfrFrom});
+  document.getElementById('xfr-amt').value='';document.getElementById('xfr-note').value='';xfrFrom='';xfrTo='';
+  saveCache();render();syncAll();alert('✅ 轉帳完成');
+}
+function addAcct(){
+  const name=document.getElementById('a-name').value.trim();
+  if(!name)return showE('aerr','請輸入名稱');
+  const bal=parseFloat(document.getElementById('a-bal').value)||0;
+  const dueDay=acctType==='cc'?(parseInt(document.getElementById('a-due').value)||0):0;
+  const ex=state.accounts.find(a=>a.name===name&&a.type===acctType);
+  if(ex){ex.balance=bal;if(dueDay)ex.dueDay=dueDay;}
+  else{state.accounts.push({id:state.nextId++,type:acctType,name,balance:bal,dueDay});}
+  document.getElementById('a-name').value='';document.getElementById('a-bal').value='';document.getElementById('a-due').value='';
+  saveCache();render();syncAll();
+}
+function delTx(id){if(!confirm('確定刪除？'))return;state.txs=state.txs.filter(t=>t.id!==id);saveCache();render();syncAll();}
+function delAcct(id){if(!confirm('確定刪除？'))return;state.accounts=state.accounts.filter(a=>a.id!==id);saveCache();render();syncAll();}
+function delInv(id){if(!confirm('確定刪除？'))return;state.investments=state.investments.filter(i=>i.id!==id);saveCache();render();syncAll();}
+function addCat(){
+  const name=document.getElementById('nc-name').value.trim();
+  const type=document.getElementById('nc-type').value;
+  if(!name)return showE('ncerr','請輸入分類名稱');
+  if(state.cats[type].includes(name))return showE('ncerr','此分類已存在');
+  state.cats[type].push(name);document.getElementById('nc-name').value='';
+  saveCache();render();syncAll();
+}
+function delCat(type,name){
+  const def={expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']};
+  if(def[type]?.includes(name))return alert('預設分類無法刪除');
+  if(!confirm(`刪除「${name}」？`))return;
+  state.cats[type]=state.cats[type].filter(c=>c!==name);
+  saveCache();render();syncAll();
+}
+
+function monthTxs(){return state.txs.filter(t=>{const d=new Date(t.date);return d.getFullYear()===curYear&&d.getMonth()===curMonth;});}
+
+function render(){
+  document.getElementById('mlabel').textContent=curYear+'年'+MN[curMonth];
+  const mt=monthTxs();
+  const inc=mt.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=mt.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const ccSpend=mt.filter(t=>t.type==='expense'&&t.source&&state.accounts.find(a=>String(a.id)===t.source&&a.type==='cc')).reduce((s,t)=>s+t.amount,0);
+  const bankTotal=state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0);
+  const invTotal=state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
+  const bal=inc-exp;
+  document.getElementById('s-inc').textContent=fmt(inc);
+  document.getElementById('s-exp').textContent=fmt(exp);
+  document.getElementById('s-bal').textContent=(bal<0?'-':'')+fmt(bal);
+  document.getElementById('s-bal').className='sum-val'+(bal<0?' c-neg':bal>0?' c-pos':'');
+  document.getElementById('s-bank').textContent=fmt(bankTotal);
+  document.getElementById('s-cc').textContent=fmt(ccSpend);
+  document.getElementById('s-inv').textContent=fmt(invTotal);
+
+  // CC alerts
+  const todayD=new Date().getDate();
+  const alertHtml=state.accounts.filter(a=>a.type==='cc'&&a.dueDay>0&&Math.abs(a.dueDay-todayD)<=3).map(a=>{
+    const diff=a.dueDay-todayD;
+    const msg=diff===0?'今天就是扣款日':diff>0?`還有 ${diff} 天`:Math.abs(diff)+' 天前已扣款';
+    return `<div class="alert">💳 ${a.name} 扣款日 ${a.dueDay} 號 — ${msg}</div>`;
+  }).join('');
+  ['cc-alerts-add','cc-alerts-acct'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=alertHtml;});
+
+  // tx list
+  const txEl=document.getElementById('tx-list');
+  const bgMap={expense:'#fde8e8',income:'#e6f7ef',invest:'#eeecfd',transfer:'#fff8e1'};
+  const clsMap={expense:'c-neg',income:'c-pos',invest:'c-purple',transfer:'c-amber'};
+  const pfxMap={expense:'-',income:'+',invest:'▲',transfer:'⇄'};
+  txEl.innerHTML=mt.length?mt.map(t=>{
+    const acct=t.source?state.accounts.find(a=>String(a.id)===t.source):null;
+    const src=acct?` · ${acct.name}${acct.type==='cc'?'💳':''}` :'';
+    return `<div class="tx"><div class="tx-ico" style="background:${bgMap[t.type]||'#f0efec'}">${iconFor(t.cat)}</div><div class="tx-info"><div class="tx-name">${t.note||t.cat}</div><div class="tx-meta">${t.cat} · ${t.date.slice(5).replace('-','/')}${src}</div></div><div class="tx-amt ${clsMap[t.type]||''}">${pfxMap[t.type]||''}${fmt(t.amount)}</div><button class="delbtn" onclick="delTx(${t.id})">×</button></div>`;
+  }).join(''):'<div class="empty">本月還沒有記錄</div>';
+
+  // accounts
+  const banks=state.accounts.filter(a=>a.type==='bank');
+  const ccs=state.accounts.filter(a=>a.type==='cc');
+  document.getElementById('bank-list').innerHTML=banks.length?banks.map(a=>`<div class="acct-item"><span style="font-size:17px">🏦</span><div style="flex:1"><div class="acct-name">${a.name}</div></div><span style="font-size:13px;font-weight:600;color:var(--blue)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:8px">刪除</button></div>`):'<div class="empty" style="padding:.5rem 0">還沒有銀行帳戶</div>';
+  document.getElementById('cc-list').innerHTML=ccs.length?ccs.map(a=>`<div class="acct-item"><span style="font-size:17px">💳</span><div style="flex:1"><div class="acct-name">${a.name}</div>${a.dueDay?`<div class="acct-sub">扣款日：每月 ${a.dueDay} 號</div>`:''}</div><span style="font-size:13px;font-weight:600;color:var(--red)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:8px">刪除</button></div>`):'<div class="empty" style="padding:.5rem 0">還沒有信用卡</div>';
+
+  // investments
+  const invTotal2=state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
+  const invCost=state.investments.reduce((s,i)=>s+i.price*i.shares,0);
+  const invGain=invTotal2-invCost;
+  document.getElementById('inv-total-val').textContent=fmt(invTotal2);
+  const gEl=document.getElementById('inv-total-gain');gEl.textContent=(invGain>=0?'+':'')+fmt(invGain);gEl.className='sum-val '+(invGain>=0?'c-pos':'c-neg');
+  document.getElementById('inv-list').innerHTML=state.investments.length?state.investments.map(i=>{
+    const cost=i.price*i.shares,val=i.curPrice*i.shares,gain=val-cost;
+    const pct=cost>0?((gain/cost)*100).toFixed(1):'0.0';
+    const gcls=gain>=0?'c-pos':'c-neg',gs=gain>=0?'+':'';
+    return `<div class="acct-item" style="align-items:flex-start"><span style="font-size:17px;margin-top:2px">📊</span><div style="flex:1"><div class="acct-name">${i.name}${i.ticker?` <span style="font-size:11px;color:var(--muted)">(${i.ticker})</span>`:''}</div><div class="acct-sub ${gcls}">${gs}${fmt(gain)} (${gs}${pct}%) · ${i.shares}股</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:600;color:var(--purple)">${fmt(val)}</div><div class="acct-sub">成本 ${fmt(cost)}</div></div><button class="btn-sm btn-del" onclick="delInv(${i.id})" style="margin-left:8px;flex-shrink:0">刪除</button></div>`;
+  }).join(''):'<div class="empty">還沒有投資記錄<br><small>在「新增」切換到「投資」來新增</small></div>';
+
+  // cat list in settings
+  const def={expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']};
+  document.getElementById('exp-cats').innerHTML=state.cats.expense.map(c=>`<span class="chip">${c}${!def.expense.includes(c)?` <span onclick="delCat('expense','${c}')" style="color:var(--red);cursor:pointer">×</span>`:''}</span>`).join('');
+  document.getElementById('inc-cats').innerHTML=state.cats.income.map(c=>`<span class="chip">${c}${!def.income.includes(c)?` <span onclick="delCat('income','${c}')" style="color:var(--red);cursor:pointer">×</span>`:''}</span>`).join('');
+
+  renderChips();
+  if(curChart==='bar')renderBarChart(mt);else renderPieChart(mt);
+}
+
+function renderBarChart(mt){
+  const days=new Date(curYear,curMonth+1,0).getDate();
+  const labels=[],incD=[],expD=[];
+  for(let d=1;d<=days;d++){
+    const ds=`${curYear}-${String(curMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const day=mt.filter(t=>t.date===ds);
+    labels.push(d%5===0?String(d):'');
+    incD.push(Math.round(day.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0)));
+    expD.push(Math.round(day.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)));
+  }
+  if(barChart){barChart.destroy();barChart=null;}
+  const ctx=document.getElementById('chart-bar').getContext('2d');
+  barChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'收入',data:incD,backgroundColor:'#1d8a5c',borderRadius:3,borderSkipped:false},{label:'支出',data:expD,backgroundColor:'#c0392b',borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'NT$'+c.raw.toLocaleString()}}},scales:{x:{ticks:{font:{size:10},color:'#898781'},grid:{display:false}},y:{ticks:{font:{size:10},color:'#898781',callback:v=>'$'+v.toLocaleString()},grid:{color:'#f0efec'}}}}});
+}
+function renderPieChart(mt){
+  const expMt=mt.filter(t=>t.type==='expense');
+  if(pieChart){pieChart.destroy();pieChart=null;}
+  if(!expMt.length){document.getElementById('pie-legend').innerHTML='<span style="color:#c3c2b7">本月還沒有支出</span>';pieChart=new Chart(document.getElementById('chart-pie').getContext('2d'),{type:'doughnut',data:{labels:['無'],datasets:[{data:[1],backgroundColor:['#e1e0d9']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});return;}
+  const map={};expMt.forEach(t=>{map[t.cat]=(map[t.cat]||0)+t.amount;});
+  const entries=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const labels=entries.map(e=>e[0]),data=entries.map(e=>Math.round(e[1]));
+  const total=data.reduce((s,v)=>s+v,0);
+  const colors=labels.map((_,i)=>PIE_COLORS[i%PIE_COLORS.length]);
+  document.getElementById('pie-legend').innerHTML=labels.map((l,i)=>`<span class="pie-legend-row"><span class="ldot" style="background:${colors[i]}"></span>${l} ${((data[i]/total)*100).toFixed(1)}%</span>`).join('');
+  pieChart=new Chart(document.getElementById('chart-pie').getContext('2d'),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#f5f5f4'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: NT$${c.raw.toLocaleString()} (${((c.raw/total)*100).toFixed(1)}%)`}}}}});
+}
+
+// PWA service worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// init
+document.getElementById('f-date').value=today();
+document.getElementById('fi-date').value=today();
+document.getElementById('ft-date').value=today();
+document.getElementById('xfr-date').value=today();
+loadCache();
+render();
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</body>
+</html>
