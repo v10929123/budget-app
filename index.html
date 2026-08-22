@@ -618,7 +618,7 @@ function checkCCAutoPay(){
     const amt=cc.balance;
     bank.balance=Math.round((bank.balance-amt)*100)/100;
     cc.balance=0;
-    state.txs.unshift({id:state.nextId++,type:'transfer',amount:amt,cat:'轉帳',note:`自動繳費 ${cc.name}`,date:today(),source:String(bank.id),optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
+    state.txs.unshift({id:safeNextId(),type:'transfer',amount:amt,cat:'轉帳',note:`自動繳費 ${cc.name}`,date:today(),source:String(bank.id),optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
     saveCache();syncAll();
   });
 }
@@ -690,6 +690,14 @@ function refreshDebitBankSelect(){
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
+
+function safeNextId(){
+  if(!state.nextId||state.nextId<=0||isNaN(state.nextId)){
+    const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id)].filter(n=>n&&n>0);
+    state.nextId=allIds.length>0?Math.max(...allIds)+1:1;
+  }
+  return state.nextId++;
+}
 function addEntry(){
   if(txType==='invest')return addInvest();
   if(txType==='transfer')return addXfr();
@@ -706,13 +714,13 @@ function addEntry(){
     const u=document.getElementById('inst-unit').value;
     const perA=Math.round(a/n*100)/100;
     const gid='inst_'+Date.now();
-    genInstDates(date,n,i,u).forEach((d,idx)=>{state.txs.push({id:state.nextId++,type:'expense',amount:perA,cat,note:`${note||cat}（${idx+1}/${n}）`,date:d,source,optional:isOpt,confirmed:false,installGroup:gid,installIndex:idx+1,installTotal:n});});
+    genInstDates(date,n,i,u).forEach((d,idx)=>{state.txs.push({id:safeNextId(),type:'expense',amount:perA,cat,note:`${note||cat}（${idx+1}/${n}）`,date:d,source,optional:isOpt,confirmed:false,installGroup:gid,installIndex:idx+1,installTotal:n});});
     state.txs.sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('f-amt').value='';document.getElementById('f-note').value='';
     isOpt=false;isInst=false;updateOptUI();updateInstUI();document.getElementById('inst-fields').style.display='none';
     saveCache();render();syncAll();return;
   }
-  const id=state.nextId++;
+  const id=safeNextId();
   state.txs.unshift({id,type:txType,amount:a,cat,note,date,source,optional:txType==='expense'?isOpt:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
   if(txType==='expense'&&source){const ac=state.accounts.find(x=>String(x.id)===source);if(ac)ac.balance=Math.round((ac.balance-a)*100)/100;}
   if(txType==='income'&&source){const ac=state.accounts.find(x=>String(x.id)===source);if(ac)ac.balance=Math.round((ac.balance+a)*100)/100;}
@@ -725,7 +733,7 @@ function addInvest(){
   if(!p||!s)return showE('ferr',T('buyPrice')+'?');
   const cur=parseFloat(document.getElementById('fi-cur').value)||p;
   const source=document.getElementById('fi-source').value;
-  state.investments.push({id:state.nextId++,invType,name,ticker:document.getElementById('fi-ticker').value.trim(),price:p,shares:s,curPrice:cur,date:document.getElementById('fi-date').value||today(),source});
+  state.investments.push({id:safeNextId(),invType,name,ticker:document.getElementById('fi-ticker').value.trim(),price:p,shares:s,curPrice:cur,date:document.getElementById('fi-date').value||today(),source});
   if(source){const ac=state.accounts.find(x=>String(x.id)===source);if(ac)ac.balance=Math.round((ac.balance-p*s)*100)/100;}
   ['fi-name','fi-ticker','fi-price','fi-shares','fi-cur'].forEach(id=>document.getElementById(id).value='');
   saveCache();render();syncAll();
@@ -736,7 +744,7 @@ function addXfr(){
   if(!fId||!tId||fId===tId)return showE('ferr',T('from')+'?');
   const from=state.accounts.find(x=>String(x.id)===fId),to=state.accounts.find(x=>String(x.id)===tId);
   if(from)from.balance=Math.round((from.balance-a)*100)/100;if(to)to.balance=Math.round((to.balance+a)*100)/100;
-  state.txs.unshift({id:state.nextId++,type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('ft-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('ft-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
+  state.txs.unshift({id:safeNextId(),type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('ft-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('ft-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
   document.getElementById('ft-amt').value='';document.getElementById('ft-note').value='';
   saveCache();render();syncAll();
 }
@@ -746,7 +754,7 @@ function doTransfer(){
   if(!fId||!tId||fId===tId)return showE('xfrerr',T('from')+'?');
   const from=state.accounts.find(x=>String(x.id)===fId),to=state.accounts.find(x=>String(x.id)===tId);
   if(from)from.balance=Math.round((from.balance-a)*100)/100;if(to)to.balance=Math.round((to.balance+a)*100)/100;
-  state.txs.unshift({id:state.nextId++,type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('xfr-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('xfr-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
+  state.txs.unshift({id:safeNextId(),type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('xfr-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('xfr-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
   document.getElementById('xfr-amt').value='';document.getElementById('xfr-note').value='';
   saveCache();render();syncAll();
 }
@@ -756,8 +764,16 @@ function addAcct(){
   const dueDay=acctType==='cc'?(parseInt(document.getElementById('a-due').value)||0):0;
   const debitBankId=acctType==='cc'?document.getElementById('a-debit-bank').value:'';
   const ex=state.accounts.find(a=>a.name===name&&a.type===acctType);
-  if(ex){ex.balance=bal;if(dueDay)ex.dueDay=dueDay;if(debitBankId!==undefined)ex.debitBankId=debitBankId;}
-  else state.accounts.push({id:state.nextId++,type:acctType,name,balance:bal,dueDay,debitBankId});
+  if(ex){
+    ex.balance=bal;if(dueDay)ex.dueDay=dueDay;if(debitBankId!==undefined)ex.debitBankId=debitBankId;
+  } else {
+    if(!state.nextId||state.nextId<=0||isNaN(state.nextId)){
+      const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id)].filter(n=>n&&n>0);
+      state.nextId=allIds.length>0?Math.max(...allIds)+1:1;
+    }
+    const newId=safeNextId();
+    state.accounts.push({id:newId,type:acctType,name,balance:bal,dueDay,debitBankId});
+  }
   document.getElementById('a-name').value='';document.getElementById('a-bal').value='';document.getElementById('a-due').value='';
   saveCache();render();syncAll();
 }
