@@ -559,18 +559,20 @@ async function loadFromSheets(){
     const res=await shReq('GET','/values:batchGet?ranges='+['Transactions!A2:Z','Accounts!A2:Z','Investments!A2:Z','Categories!A2:Z'].map(encodeURIComponent).join('&ranges='));
     const vr=res.valueRanges;
     // Completely replace state with Sheets data — never merge with cache
-    const newTxs=(vr[0]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'expense',amount:+r[2]||0,cat:r[3]||'',note:r[4]||'',date:r[5]||today(),source:r[6]||'',optional:r[7]==='true',confirmed:r[8]==='true',installGroup:r[9]||'',installIndex:+r[10]||0,installTotal:+r[11]||0}));
-    const newAccts=(vr[1]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'bank',name:r[2]||'',balance:+r[3]||0,dueDay:+r[4]||0,debitBankId:r[5]||''}));
-    const newInvs=(vr[2]?.values||[]).map(r=>({id:+r[0]||0,invType:r[1]||'stock',name:r[2]||'',ticker:r[3]||'',price:+r[4]||0,shares:+r[5]||0,curPrice:+r[6]||0,date:r[7]||today(),source:r[8]||''}));
+    let autoId=1000;
+    const parseId=v=>{const n=parseInt(v);return(!isNaN(n)&&n>0)?n:null;};
+    const newTxs=(vr[0]?.values||[]).filter(r=>r&&r.length>=3).map(r=>({id:parseId(r[0])||(autoId++),type:r[1]||'expense',amount:parseFloat(r[2])||0,cat:r[3]||'',note:r[4]||'',date:r[5]||today(),source:r[6]||'',optional:r[7]==='true',confirmed:r[8]==='true',installGroup:r[9]||'',installIndex:parseInt(r[10])||0,installTotal:parseInt(r[11])||0}));
+    const newAccts=(vr[1]?.values||[]).filter(r=>r&&r.length>=2).map(r=>({id:parseId(r[0])||(autoId++),type:r[1]||'bank',name:r[2]||'',balance:parseFloat(r[3])||0,dueDay:parseInt(r[4])||0,debitBankId:r[5]||''}));
+    const newInvs=(vr[2]?.values||[]).filter(r=>r&&r.length>=3).map(r=>({id:parseId(r[0])||(autoId++),invType:r[1]||'stock',name:r[2]||'',ticker:r[3]||'',price:parseFloat(r[4])||0,shares:parseFloat(r[5])||0,curPrice:parseFloat(r[6])||0,date:r[7]||today(),source:r[8]||''}));
     const catRows=vr[3]?.values||[];
     const newCats=catRows.length?{expense:[],income:[]}:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']};
     if(catRows.length)catRows.forEach(r=>{if(r[0]==='expense'||r[0]==='income')newCats[r[0]].push(r[1]||'');});
-    // Only update if Sheets returned valid data
-    if(newTxs!==undefined)state.txs=newTxs;
-    if(newAccts!==undefined)state.accounts=newAccts;
-    if(newInvs!==undefined)state.investments=newInvs;
+    state.txs=newTxs;
+    state.accounts=newAccts;
+    state.investments=newInvs;
     state.cats=newCats;
-    state.nextId=Math.max(1,...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id))+1;
+    const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id)];
+    state.nextId=allIds.length>0?Math.max(...allIds)+1:1;
     saveCache();
     const now=new Date();
     setSS('ok',`${T('synced')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`);
