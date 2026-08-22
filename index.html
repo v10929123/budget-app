@@ -477,6 +477,7 @@ let accessToken=null,syncing=false,tokenClient=null,lastSS='',lastSL='';
 
 function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,lang}));}catch(e){}}
 function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;lang=p.lang||lang;}}catch(e){}}
+function clearStateKeepPrefs(){state={txs:[],accounts:[],investments:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};}
 function clearLocal(){if(confirm(T('clearCache')+'?')){localStorage.removeItem(CACHE_KEY);localStorage.removeItem('fk_lang');location.reload();}}
 
 // ── Google OAuth with auto-refresh ────────────────────────────────────────────
@@ -515,6 +516,9 @@ async function showMainApp(){
   document.getElementById('main-app').style.display='flex';
   document.getElementById('login-btns').style.display='none';
   document.getElementById('logout-btns').style.display='flex';
+  // Always show cached data immediately so UI isn't blank
+  loadCache();render();
+  // Then always fetch fresh data from Sheets (overrides cache)
   setSS('loading',T('loading'));
   await ensureSheets();
   await loadFromSheets();
@@ -554,25 +558,49 @@ async function loadFromSheets(){
   try{
     const res=await shReq('GET','/values:batchGet?ranges='+['Transactions!A2:Z','Accounts!A2:Z','Investments!A2:Z','Categories!A2:Z'].map(encodeURIComponent).join('&ranges='));
     const vr=res.valueRanges;
-    state.txs=(vr[0]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'expense',amount:+r[2]||0,cat:r[3]||'',note:r[4]||'',date:r[5]||today(),source:r[6]||'',optional:r[7]==='true',confirmed:r[8]==='true',installGroup:r[9]||'',installIndex:+r[10]||0,installTotal:+r[11]||0}));
-    state.accounts=(vr[1]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'bank',name:r[2]||'',balance:+r[3]||0,dueDay:+r[4]||0,debitBankId:r[5]||''}));
-    state.investments=(vr[2]?.values||[]).map(r=>({id:+r[0]||0,invType:r[1]||'stock',name:r[2]||'',ticker:r[3]||'',price:+r[4]||0,shares:+r[5]||0,curPrice:+r[6]||0,date:r[7]||today(),source:r[8]||''}));
+    // Completely replace state with Sheets data — never merge with cache
+    const newTxs=(vr[0]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'expense',amount:+r[2]||0,cat:r[3]||'',note:r[4]||'',date:r[5]||today(),source:r[6]||'',optional:r[7]==='true',confirmed:r[8]==='true',installGroup:r[9]||'',installIndex:+r[10]||0,installTotal:+r[11]||0}));
+    const newAccts=(vr[1]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'bank',name:r[2]||'',balance:+r[3]||0,dueDay:+r[4]||0,debitBankId:r[5]||''}));
+    const newInvs=(vr[2]?.values||[]).map(r=>({id:+r[0]||0,invType:r[1]||'stock',name:r[2]||'',ticker:r[3]||'',price:+r[4]||0,shares:+r[5]||0,curPrice:+r[6]||0,date:r[7]||today(),source:r[8]||''}));
     const catRows=vr[3]?.values||[];
-    if(catRows.length){state.cats={expense:[],income:[]};catRows.forEach(r=>{if(r[0]==='expense'||r[0]==='income')state.cats[r[0]].push(r[1]||'');});}
+    const newCats=catRows.length?{expense:[],income:[]}:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']};
+    if(catRows.length)catRows.forEach(r=>{if(r[0]==='expense'||r[0]==='income')newCats[r[0]].push(r[1]||'');});
+    // Only update if Sheets returned valid data
+    if(newTxs!==undefined)state.txs=newTxs;
+    if(newAccts!==undefined)state.accounts=newAccts;
+    if(newInvs!==undefined)state.investments=newInvs;
+    state.cats=newCats;
     state.nextId=Math.max(1,...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id))+1;
-    saveCache();setSS('ok',T('synced'));
-  }catch(e){setSS('err',T('syncFail'));loadCache();}
+    saveCache();
+    const now=new Date();
+    setSS('ok',`${T('synced')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`);
+  }catch(e){
+    console.error('loadFromSheets error:',e);
+    setSS('err',T('syncFail')+': '+e.message);
+    // Don't fallback to cache here — keep whatever state we already have
+  }
 }
 async function writeSheet(name,rows){await shReq('PUT','/values/'+encodeURIComponent(name+'!A2:Z')+'?valueInputOption=RAW',{range:name+'!A2:Z',values:rows.length?rows:[['']]});}
 async function syncAll(){
-  if(syncing||!accessToken)return;syncing=true;setSS('loading',T('loading'));
+  if(!accessToken){setSS('err',T('notLoggedIn'));return;}
+  if(syncing)return;
+  syncing=true;setSS('loading',T('loading'));
   try{
-    await writeSheet('Transactions',state.txs.map(x=>[x.id,x.type,x.amount,x.cat,x.note,x.date,x.source||'',x.optional||false,x.confirmed||false,x.installGroup||'',x.installIndex||0,x.installTotal||0]));
-    await writeSheet('Accounts',state.accounts.map(x=>[x.id,x.type,x.name,x.balance,x.dueDay||'',x.debitBankId||'']));
-    await writeSheet('Investments',state.investments.map(x=>[x.id,x.invType||'stock',x.name,x.ticker,x.price,x.shares,x.curPrice,x.date,x.source||'']));
-    await writeSheet('Categories',[...state.cats.expense.map(c=>['expense',c]),...state.cats.income.map(c=>['income',c])]);
-    saveCache();const nt=new Date();setSS('ok',`${T('synced')} ${String(nt.getHours()).padStart(2,'0')}:${String(nt.getMinutes()).padStart(2,'0')}`);
-  }catch(e){setSS('err',T('syncFail'));}syncing=false;
+    // Write all sheets in parallel for speed
+    await Promise.all([
+      writeSheet('Transactions',state.txs.map(x=>[x.id,x.type,x.amount,x.cat,x.note,x.date,x.source||'',String(x.optional||false),String(x.confirmed||false),x.installGroup||'',x.installIndex||0,x.installTotal||0])),
+      writeSheet('Accounts',state.accounts.map(x=>[x.id,x.type,x.name,x.balance,x.dueDay||'',x.debitBankId||''])),
+      writeSheet('Investments',state.investments.map(x=>[x.id,x.invType||'stock',x.name,x.ticker,x.price,x.shares,x.curPrice,x.date,x.source||''])),
+      writeSheet('Categories',[...state.cats.expense.map(c=>['expense',c]),...state.cats.income.map(c=>['income',c])])
+    ]);
+    saveCache();
+    const nt=new Date();
+    setSS('ok',`${T('synced')} ${String(nt.getHours()).padStart(2,'0')}:${String(nt.getMinutes()).padStart(2,'0')}`);
+  }catch(e){
+    console.error('syncAll error:',e);
+    setSS('err',T('syncFail'));
+  }
+  syncing=false;
 }
 function setSS(s,l){lastSS=s;lastSL=l;['sync-dot','sync-dot2'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='sync-dot'+(s?' '+s:'');});['sync-label','sync-label2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=l;});}
 
@@ -732,9 +760,9 @@ function addAcct(){
   saveCache();render();syncAll();
 }
 function toggleConfirm(id){const tx=state.txs.find(x=>x.id===id);if(tx)tx.confirmed=!tx.confirmed;saveCache();render();syncAll();}
-function delTx(id){if(!confirm('Delete?'))return;state.txs=state.txs.filter(x=>x.id!==id);saveCache();render();syncAll();}
-function delAcct(id){if(!confirm('Delete?'))return;state.accounts=state.accounts.filter(x=>x.id!==id);saveCache();render();syncAll();}
-function delInv(id){if(!confirm('Delete?'))return;state.investments=state.investments.filter(x=>x.id!==id);saveCache();render();syncAll();}
+async function delTx(id){if(!confirm('Delete?'))return;state.txs=state.txs.filter(x=>x.id!==id);saveCache();render();await syncAll();}
+async function delAcct(id){if(!confirm('Delete?'))return;state.accounts=state.accounts.filter(x=>x.id!==id);saveCache();render();await syncAll();}
+async function delInv(id){if(!confirm('Delete?'))return;state.investments=state.investments.filter(x=>x.id!==id);saveCache();render();await syncAll();}
 function addCat(){
   const name=document.getElementById('nc-name').value.trim();const type=document.getElementById('nc-type').value;
   if(!name)return showE('ncerr',T('catName')+'?');
