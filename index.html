@@ -531,18 +531,20 @@ async function diagSync(){
 }
 
 // ── Google OAuth with auto-refresh ────────────────────────────────────────────
+const IS_ELECTRON = typeof window!=='undefined' && window.electronAPI && window.electronAPI.isElectron;
+
 function initGoogleAuth(){
+  if(IS_ELECTRON){
+    initElectronAuth();
+    return;
+  }
+  // ── Browser / PWA flow (Google Identity Services) ──
   tokenClient=google.accounts.oauth2.initTokenClient({
     client_id:CLIENT_ID,
     scope:'https://www.googleapis.com/auth/spreadsheets',
-    // No prompt field here — we set it per-request
     callback:async(resp)=>{
       if(resp.error){
         console.log('[auth] token error:',resp.error);
-        if(['interaction_required','access_denied','popup_closed_by_user','user_cancel'].includes(resp.error)){
-          showLoginScreen();return;
-        }
-        // FedCM errors — fall through to show login
         showLoginScreen();return;
       }
       accessToken=resp.access_token;
@@ -553,13 +555,11 @@ function initGoogleAuth(){
     }
   });
 
-  // Try stored token first (no network, instant)
   const stored=loadStoredToken();
   if(stored){
     accessToken=stored;
     console.log('[auth] using stored token');
     showMainApp().then(()=>{
-      // Schedule refresh based on remaining time
       try{
         const d=JSON.parse(localStorage.getItem('fk_token')||'{}');
         const remaining=Math.max(0,(d.expiry-Date.now())/1000)-300;
@@ -570,16 +570,44 @@ function initGoogleAuth(){
     });
     return;
   }
-
-  // No stored token — show login screen, don't attempt silent (causes FedCM error)
   console.log('[auth] no stored token, showing login');
   showLoginScreen();
 }
 
+// ── Electron flow: system browser + local IPC bridge ──────────────────────
+async function initElectronAuth(){
+  console.log('[auth] Electron mode — checking stored token via main process');
+  try{
+    const result=await window.electronAPI.googleGetToken();
+    if(result && result.accessToken){
+      accessToken=result.accessToken;
+      console.log('[auth] Electron: got valid token, expires in', Math.round((result.expiry-Date.now())/1000),'s');
+      await showMainApp();
+      scheduleElectronRefresh(result.expiry);
+      return;
+    }
+  }catch(e){
+    console.error('[auth] Electron token check failed:',e);
+  }
+  showLoginScreen();
+}
+
+function scheduleElectronRefresh(expiry){
+  const remaining=Math.max(0,(expiry-Date.now())/1000)-300;
+  if(remaining>60){
+    setTimeout(async ()=>{
+      try{
+        const r=await window.electronAPI.googleGetToken();
+        if(r && r.accessToken){ accessToken=r.accessToken; scheduleElectronRefresh(r.expiry); }
+      }catch(e){}
+    }, remaining*1000);
+  }
+}
+
 function silentRefresh(){
+  if(IS_ELECTRON)return; // handled by scheduleElectronRefresh
   if(!tokenClient)return;
   console.log('[auth] silent refresh attempt');
-  // Use select_account to avoid FedCM, but still try non-interactive
   try{
     tokenClient.requestAccessToken({prompt:''});
   }catch(e){
@@ -597,7 +625,6 @@ function loadStoredToken(){
     const d = localStorage.getItem('fk_token');
     if(!d) return null;
     const {token, expiry} = JSON.parse(d);
-    // Valid if more than 2 minutes remaining
     if(expiry - Date.now() > 120000) return token;
     return null;
   }catch(e){ return null; }
@@ -607,10 +634,25 @@ function clearStoredToken(){
   try{ localStorage.removeItem('fk_token'); }catch(e){}
 }
 
-function signIn(){
+async function signIn(){
+  if(IS_ELECTRON){
+    setSS('loading', lang==='en'?'Opening browser…':'開啟瀏覽器登入中...');
+    try{
+      const result=await window.electronAPI.googleSignIn();
+      if(result && result.accessToken){
+        accessToken=result.accessToken;
+        await showMainApp();
+        scheduleElectronRefresh(result.expiry);
+      }
+    }catch(e){
+      console.error('[auth] Electron sign-in failed:',e);
+      setSS('err', T('loginFail'));
+      alert((lang==='en'?'Sign-in failed: ':'登入失敗：')+e.message);
+    }
+    return;
+  }
   if(!tokenClient)return;
   console.log('[auth] manual sign-in');
-  // prompt:'select_account' shows account picker without requiring FedCM
   tokenClient.requestAccessToken({prompt:'select_account'});
 }
 
@@ -633,8 +675,12 @@ function showLoginScreen(){
   document.getElementById('main-app').style.display='none';
 }
 
-function signOut(){
-  if(accessToken)google.accounts.oauth2.revoke(accessToken);
+async function signOut(){
+  if(IS_ELECTRON){
+    try{ await window.electronAPI.googleSignOut(); }catch(e){}
+  } else if(accessToken){
+    google.accounts.oauth2.revoke(accessToken);
+  }
   accessToken=null;
   clearStoredToken();
   setSS('',T('notLoggedIn'));
@@ -1117,6 +1163,13 @@ applyLang();render();
 </script>
 
 <!-- Google Identity Services -->
+<!-- Google Identity Services (used for browser/PWA login flow) -->
 <script src="https://accounts.google.com/gsi/client" onload="initGoogleAuth();"></script>
+<script>
+  // In Electron, skip waiting for Google's script — use the IPC-based flow immediately
+  if (typeof window!=='undefined' && window.electronAPI && window.electronAPI.isElectron) {
+    initGoogleAuth();
+  }
+</script>
 </body>
 </html>
