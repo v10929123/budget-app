@@ -192,8 +192,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
       <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       <span id="login-btn-text">使用 Google 帳號登入</span>
     </button>
-    <p style="margin-top:.75rem;font-size:11px;color:var(--text3)" id="login-note">首次需授權 · 之後自動登入</p>
-    <p id="login-status" style="margin-top:.5rem;font-size:12px;color:var(--gold2);display:none">🔄 嘗試自動登入中...</p>
+    <p style="margin-top:.75rem;font-size:11px;color:var(--text3)" id="login-note">點按鈕登入後，1小時內重開不需再登入</p>
   </div>
 </div>
 
@@ -483,48 +482,59 @@ function clearLocal(){if(confirm(T('clearCache')+'?')){localStorage.removeItem(C
 
 // ── Google OAuth with auto-refresh ────────────────────────────────────────────
 function initGoogleAuth(){
-  // Token client for getting access token after One Tap or manual sign-in
   tokenClient=google.accounts.oauth2.initTokenClient({
     client_id:CLIENT_ID,
     scope:'https://www.googleapis.com/auth/spreadsheets',
-    prompt:'',
+    // No prompt field here — we set it per-request
     callback:async(resp)=>{
       if(resp.error){
-        if(resp.error==='interaction_required'||resp.error==='access_denied'||resp.error==='popup_closed_by_user'){
+        console.log('[auth] token error:',resp.error);
+        if(['interaction_required','access_denied','popup_closed_by_user','user_cancel'].includes(resp.error)){
           showLoginScreen();return;
         }
-        setSS('err',T('loginFail'));return;
+        // FedCM errors — fall through to show login
+        showLoginScreen();return;
       }
       accessToken=resp.access_token;
       storeToken(resp.access_token, resp.expires_in||3600);
       const expiresIn=(resp.expires_in||3600)-300;
-      setTimeout(()=>silentRefresh(),expiresIn*1000);
+      if(expiresIn>0) setTimeout(()=>silentRefresh(),expiresIn*1000);
       await showMainApp();
     }
   });
 
-  // Try stored token first — fastest path, no network needed
-  const storedToken = loadStoredToken();
-  if(storedToken){
-    accessToken = storedToken;
-    // Refresh in background after showing app
+  // Try stored token first (no network, instant)
+  const stored=loadStoredToken();
+  if(stored){
+    accessToken=stored;
+    console.log('[auth] using stored token');
     showMainApp().then(()=>{
-      const expiresIn = (() => {
-        try{ const d=JSON.parse(localStorage.getItem('fk_token')||'{}'); return Math.max(0,d.expiry-Date.now())/1000-300; }catch(e){ return 0; }
-      })();
-      if(expiresIn > 60) setTimeout(()=>silentRefresh(), expiresIn*1000);
-      else silentRefresh();
+      // Schedule refresh based on remaining time
+      try{
+        const d=JSON.parse(localStorage.getItem('fk_token')||'{}');
+        const remaining=Math.max(0,(d.expiry-Date.now())/1000)-300;
+        console.log('[auth] token expires in',Math.round(remaining),'s');
+        if(remaining>60) setTimeout(()=>silentRefresh(),remaining*1000);
+        else silentRefresh();
+      }catch(e){}
     });
-    return; // skip One Tap and silent request
+    return;
   }
 
-  // Try silent token refresh (works within same browser session)
-  tokenClient.requestAccessToken({prompt:''});
+  // No stored token — show login screen, don't attempt silent (causes FedCM error)
+  console.log('[auth] no stored token, showing login');
+  showLoginScreen();
 }
 
 function silentRefresh(){
   if(!tokenClient)return;
-  tokenClient.requestAccessToken({prompt:''});
+  console.log('[auth] silent refresh attempt');
+  // Use select_account to avoid FedCM, but still try non-interactive
+  try{
+    tokenClient.requestAccessToken({prompt:''});
+  }catch(e){
+    console.log('[auth] silent refresh failed:',e.message);
+  }
 }
 
 function storeToken(token, expiresIn){
@@ -549,7 +559,9 @@ function clearStoredToken(){
 
 function signIn(){
   if(!tokenClient)return;
-  tokenClient.requestAccessToken({prompt:'consent'});
+  console.log('[auth] manual sign-in');
+  // prompt:'select_account' shows account picker without requiring FedCM
+  tokenClient.requestAccessToken({prompt:'select_account'});
 }
 
 async function showMainApp(){
@@ -569,9 +581,6 @@ async function showMainApp(){
 function showLoginScreen(){
   document.getElementById('login-overlay').style.display='flex';
   document.getElementById('main-app').style.display='none';
-  // Show auto-login status for 3s then hide it
-  const st=document.getElementById('login-status');
-  if(st){st.style.display='block';setTimeout(()=>{st.style.display='none';},3000);}
 }
 
 function signOut(){
@@ -632,19 +641,23 @@ async function loadFromSheets(){
   }
 }
 async function writeSheet(name,rows){
-  const range=name+'!A2:Z';
-  console.log('[writeSheet]',name,'rows:',rows.length);
+  console.log('[writeSheet]',name,'rows:',rows.length,'ids:',rows.map(r=>r[0]).join(','));
   try{
-    // Step 1: Clear the entire sheet first to remove any stale/duplicate rows
-    await shReq('POST','/values/'+encodeURIComponent(range)+':clear',{});
-    // Step 2: Write fresh data
-    if(rows.length>0){
-      const result = await shReq('PUT','/values/'+encodeURIComponent(range)+'?valueInputOption=RAW',{range,values:rows});
-      console.log('[writeSheet]',name,'done, updatedRows:',result.updatedRows);
-      return result;
-    } else {
-      console.log('[writeSheet]',name,'cleared (0 rows)');
-    }
+    // 1. Clear entire sheet data (A1:Z1000) to remove ALL stale rows
+    const fullRange=name+'!A1:Z1000';
+    await shReq('POST','/values/'+encodeURIComponent(fullRange)+':clear',{});
+    // 2. Write header + data starting at A1
+    const headers={
+      Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],
+      Accounts:['id','type','name','balance','dueDay','debitBankId'],
+      Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],
+      Categories:['type','name']
+    };
+    const allRows=[headers[name]||[],...rows];
+    const writeRange=name+'!A1';
+    const result=await shReq('PUT','/values/'+encodeURIComponent(writeRange)+'?valueInputOption=RAW',{range:writeRange,values:allRows});
+    console.log('[writeSheet]',name,'OK updatedRows:',result.updatedRows);
+    return result;
   }catch(e){
     console.error('[writeSheet] FAILED',name,e.message);
     throw e;
@@ -1033,6 +1046,6 @@ applyLang();render();
 </script>
 
 <!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" onload="initGoogleAuth();" async defer></script>
+<script src="https://accounts.google.com/gsi/client" onload="initGoogleAuth();"></script>
 </body>
 </html>
