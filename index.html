@@ -188,15 +188,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
     <div class="icon-wrap"><img src="icon.png" alt="Finance Keeper"></div>
     <h2>Finance Keeper</h2>
     <p id="login-desc">登入 Google 帳號以同步資料<br>資料存在你的 Google Sheets<br>手機電腦共用同一份</p>
-    <!-- Google One Tap renders here automatically -->
-    <div id="g_id_onload"
-      data-client_id="909890286177-sfld5lrhrq2kibq324fkcpv6laq88v61.apps.googleusercontent.com"
-      data-auto_select="true"
-      data-cancel_on_tap_outside="false"
-      data-context="signin"
-      data-itp_support="true"
-      data-callback="onOneTapCredential">
-    </div>
     <button class="btn-google" onclick="signIn()">
       <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       <span id="login-btn-text">使用 Google 帳號登入</span>
@@ -491,13 +482,6 @@ function clearStateKeepPrefs(){state={txs:[],accounts:[],investments:[],cats:{ex
 function clearLocal(){if(confirm(T('clearCache')+'?')){localStorage.removeItem(CACHE_KEY);localStorage.removeItem('fk_lang');location.reload();}}
 
 // ── Google OAuth with auto-refresh ────────────────────────────────────────────
-// Called by One Tap data-callback attribute
-function onOneTapCredential(credResp){
-  if(!credResp.credential||!tokenClient)return;
-  // Got ID token from One Tap, now request access token for Sheets API
-  tokenClient.requestAccessToken({prompt:''});
-}
-
 function initGoogleAuth(){
   // Token client for getting access token after One Tap or manual sign-in
   tokenClient=google.accounts.oauth2.initTokenClient({
@@ -534,22 +518,7 @@ function initGoogleAuth(){
     return; // skip One Tap and silent request
   }
 
-  // Google One Tap — auto sign-in without user clicking anything
-  google.accounts.id.initialize({
-    client_id:CLIENT_ID,
-    // Called when One Tap gets a credential (ID token)
-    callback:async(credResp)=>{
-      if(!credResp.credential)return;
-      // We have an ID token — now get an access token for Sheets
-      tokenClient.requestAccessToken({prompt:''});
-    },
-    auto_select:true,           // auto sign-in if only one account
-    cancel_on_tap_outside:false, // don't dismiss on outside click
-    context:'signin',
-    itp_support:true,           // Safari ITP support
-  });
-
-  // Try silent sign-in first (works if user already granted permission this session)
+  // Try silent token refresh (works within same browser session)
   tokenClient.requestAccessToken({prompt:''});
 }
 
@@ -580,13 +549,7 @@ function clearStoredToken(){
 
 function signIn(){
   if(!tokenClient)return;
-  // Show One Tap prompt first, fall back to full consent flow
-  google.accounts.id.prompt((notification)=>{
-    if(notification.isNotDisplayed()||notification.isSkippedMoment()){
-      // One Tap not available — use full OAuth flow
-      tokenClient.requestAccessToken({prompt:'consent'});
-    }
-  });
+  tokenClient.requestAccessToken({prompt:'consent'});
 }
 
 async function showMainApp(){
@@ -615,7 +578,6 @@ function signOut(){
   if(accessToken)google.accounts.oauth2.revoke(accessToken);
   accessToken=null;
   clearStoredToken();
-  google.accounts.id.disableAutoSelect();
   setSS('',T('notLoggedIn'));
   document.getElementById('login-btns').style.display='block';
   document.getElementById('logout-btns').style.display='none';
@@ -671,12 +633,18 @@ async function loadFromSheets(){
 }
 async function writeSheet(name,rows){
   const range=name+'!A2:Z';
-  const body={range, values:rows.length?rows:[['']]};
   console.log('[writeSheet]',name,'rows:',rows.length);
   try{
-    const result = await shReq('PUT','/values/'+encodeURIComponent(range)+'?valueInputOption=RAW',body);
-    console.log('[writeSheet]',name,'done, updatedRows:',result.updatedRows);
-    return result;
+    // Step 1: Clear the entire sheet first to remove any stale/duplicate rows
+    await shReq('POST','/values/'+encodeURIComponent(range)+':clear',{});
+    // Step 2: Write fresh data
+    if(rows.length>0){
+      const result = await shReq('PUT','/values/'+encodeURIComponent(range)+'?valueInputOption=RAW',{range,values:rows});
+      console.log('[writeSheet]',name,'done, updatedRows:',result.updatedRows);
+      return result;
+    } else {
+      console.log('[writeSheet]',name,'cleared (0 rows)');
+    }
   }catch(e){
     console.error('[writeSheet] FAILED',name,e.message);
     throw e;
