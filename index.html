@@ -742,6 +742,23 @@ async function syncAll(){
 function setSS(s,l){lastSS=s;lastSL=l;['sync-dot','sync-dot2'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='sync-dot'+(s?' '+s:'');});['sync-label','sync-label2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=l;});}
 
 // ── CC auto-pay ───────────────────────────────────────────────────────────────
+function stripTime(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+function getNextDueDate(dueDay,fromDate){
+  // Returns the next occurrence of dueDay-of-month, rolling to next month if needed,
+  // and clamping to the last day of a month if dueDay exceeds it (e.g. 31 in Feb).
+  const today0=stripTime(fromDate);
+  const y=today0.getFullYear(),m=today0.getMonth();
+  const clampDay=(year,month,day)=>{
+    const lastDay=new Date(year,month+1,0).getDate();
+    return Math.min(day,lastDay);
+  };
+  let candidate=new Date(y,m,clampDay(y,m,dueDay));
+  if(candidate<today0){
+    candidate=new Date(y,m+1,clampDay(y,m+1,dueDay));
+  }
+  return candidate;
+}
+
 function checkCCAutoPay(){
   const todayDate=new Date();
   const todayD=todayDate.getDate();
@@ -1001,13 +1018,17 @@ function render(){
   document.getElementById('s-cc').textContent=fmt(ccSpend);
   document.getElementById('s-inv').textContent=hideInv?'••••':fmt(invTotal);
 
-  const todayD=new Date().getDate();
-  const alertHtml=state.accounts.filter(a=>a.type==='cc'&&a.dueDay>0&&Math.abs(a.dueDay-todayD)<=3).map(a=>{
-    const diff=a.dueDay-todayD;const bank=state.accounts.find(b=>String(b.id)===String(a.debitBankId));
-    const msg=diff===0?'今天自動扣款':diff>0?`${diff}天後扣款`:`${Math.abs(diff)}天前`;
+  const nowDate=new Date();
+  const alertHtml=state.accounts.filter(a=>a.type==='cc'&&a.dueDay>0).map(a=>{
+    const nextDue=getNextDueDate(a.dueDay,nowDate);
+    const diffDays=Math.round((nextDue-stripTime(nowDate))/86400000);
+    if(diffDays>3)return null;
+    const bank=state.accounts.find(b=>String(b.id)===String(a.debitBankId));
+    const isNextMonth=nextDue.getMonth()!==nowDate.getMonth();
+    const msg=diffDays===0?'今天自動扣款':`${diffDays}天後扣款${isNextMonth?'（下月）':''}`;
     const bankNote=bank?` ← ${bank.name}`:'';
     return `<div class="alert-bar">⚡ ${a.name}${bankNote} — ${msg} ${fmt(a.balance)}</div>`;
-  }).join('');
+  }).filter(Boolean).join('');
   ['cc-alerts-add','cc-alerts-acct'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=alertHtml;});
 
   renderAnalysis();
