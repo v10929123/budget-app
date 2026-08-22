@@ -62,6 +62,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 .sum-card.c-inv::before{background:var(--purple)}
 .sum-label{font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;justify-content:space-between}
 .sum-val{font-size:16px;font-weight:700}
+.sum-sub{font-size:10px;color:var(--text3);margin-top:2px;line-height:1.4}
 .eye-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:0;line-height:1}
 .pos{color:var(--green)}.neg{color:var(--red)}.blu{color:var(--blue)}.pur{color:var(--purple)}.amb{color:var(--amber)}.gld{color:var(--gold2)}
 
@@ -220,10 +221,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
     <div class="panel on" id="panel-add">
       <div id="cc-alerts-add"></div>
       <div class="sum-grid">
+        <div class="sum-card c-bal" style="grid-column:1/-1">
+          <div class="sum-label"><span data-t="totalAssets">總資產（銀行＋投資）</span><button class="eye-btn" onclick="toggleHide('total')" id="eye-total">👁</button></div>
+          <div class="sum-val cyn" id="s-total" style="font-size:20px">NT$0</div>
+        </div>
         <div class="sum-card c-bal"><div class="sum-label"><span data-t="bal">本月結餘</span></div><div class="sum-val" id="s-bal">NT$0</div></div>
         <div class="sum-card c-bank"><div class="sum-label"><span data-t="bankTotal">銀行總額</span><button class="eye-btn" onclick="toggleHide('bank')" id="eye-bank">👁</button></div><div class="sum-val gld" id="s-bank">NT$0</div></div>
         <div class="sum-card c-inc"><div class="sum-label"><span data-t="monthInc">本月收入</span></div><div class="sum-val pos" id="s-inc">NT$0</div></div>
-        <div class="sum-card c-exp"><div class="sum-label"><span data-t="monthExp">本月支出</span></div><div class="sum-val neg" id="s-exp">NT$0</div></div>
+        <div class="sum-card c-exp"><div class="sum-label"><span data-t="monthExp">本月支出</span></div><div class="sum-val neg" id="s-exp">NT$0</div><div class="sum-sub" id="s-exp-sub"></div></div>
         <div class="sum-card c-cc"><div class="sum-label"><span data-t="ccMonth">信用卡本月</span></div><div class="sum-val amb" id="s-cc">NT$0</div></div>
         <div class="sum-card c-inv"><div class="sum-label"><span data-t="invTotal">投資總市值</span><button class="eye-btn" onclick="toggleHide('inv')" id="eye-inv">👁</button></div><div class="sum-val pur" id="s-inv">NT$0</div></div>
       </div>
@@ -375,6 +380,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
         </div>
         <div id="cc-extra" style="display:none">
           <div class="fg"><label data-t="dueDay">自動扣款日（幾號）</label><input type="number" id="a-due" inputmode="numeric" min="1" max="31"></div>
+          <div class="fg"><label data-t="statementBuffer">結帳緩衝期（天）</label><input type="number" id="a-buffer" inputmode="numeric" min="0" max="27" value="7" placeholder="7">
+            <div style="font-size:10px;color:var(--text3);margin-top:2px" data-t="statementBufferHint">扣款日前這幾天內的消費，會延到下期才扣</div>
+          </div>
           <div class="fg"><label data-t="debitAcct">自動扣款銀行帳戶</label><select id="a-debit-bank"></select></div>
         </div>
         <button class="btn-primary" onclick="addAcct()">＋ <span data-t="add">新增</span></button>
@@ -446,9 +454,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 <script>
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const LANGS={
-  'zh-TW':{bal:'本月結餘',bankTotal:'銀行總額',monthInc:'本月收入',monthExp:'本月支出',ccMonth:'信用卡本月',invTotal:'投資總市值',analysis:'消費分析',d7:'7天',d14:'14天',d21:'21天',thisMonth:'本月',expense:'支出',income:'收入',invest:'投資',transfer:'轉帳',amount:'金額',date:'日期',category:'分類',account:'帳戶',note:'備註',nonEssential:'非必要支出',installment:'分期付款',installSettings:'⚡ 分期設定',periods:'總期數',interval:'每期間隔',unit:'間隔單位',month:'個月',week:'週',day:'天',stockName:'股票名稱',ticker:'代號',buyPrice:'買入價',shares:'股數',curPrice:'目前市價',debitAcct:'扣款帳戶',crypto:'🪙 加密貨幣',stock:'📈 股票',from:'從（轉出）',to:'到（轉入）',add:'新增',noRecord:'本月還沒有記錄',dailyFlow:'每日收支',expByCategory:'支出分類',incByCategory:'收入分類',custom:'自訂',startDate:'開始日期',endDate:'結束日期',apply:'套用',bankAccounts:'銀行帳戶',creditCards:'信用卡',addAccount:'新增帳戶',bank:'銀行',creditCard:'信用卡',balance:'餘額',dueDay:'自動扣款日（幾號）',execTransfer:'執行轉帳',noInvest:'還沒有投資記錄',totalPnl:'總損益',syncTitle:'Google Sheets 同步',loginGoogle:'登入 Google 帳號',syncNow:'立即同步',logout:'登出',catManage:'分類管理',expCats:'支出分類',incCats:'收入分類',longPressDelete:'點 × 可刪除分類（包含預設分類）',catName:'分類名稱',type:'類型',other:'其他',clearCache:'清除本機快取',settings:'設定',accounts:'帳戶',detail:'明細',chart:'圖表',name:'名稱',topExp:'最高消費分類',topTx:'最高單筆',vsLastMonth:'vs 上月',notLoggedIn:'未登入',synced:'已同步',syncFail:'同步失敗',loading:'載入中...',loginFail:'登入失敗',initFail:'初始化失敗',loginDesc:'登入 Google 帳號以同步資料\n資料存在你的 Google Sheets\n手機電腦共用同一份',loginNote:'首次需授權存取 Google Sheets',loginBtnText:'使用 Google 帳號登入',totalExp:'區間總支出',instPrev:'共{n}期，每{i}{u}，每期{a}，首期{d}',autoPayBank:'自動扣款銀行帳戶',dueDay2:'扣款日'},
-  'zh-CN':{bal:'本月结余',bankTotal:'银行总额',monthInc:'本月收入',monthExp:'本月支出',ccMonth:'信用卡本月',invTotal:'投资总市值',analysis:'消费分析',d7:'7天',d14:'14天',d21:'21天',thisMonth:'本月',expense:'支出',income:'收入',invest:'投资',transfer:'转账',amount:'金额',date:'日期',category:'分类',account:'账户',note:'备注',nonEssential:'非必要支出',installment:'分期付款',installSettings:'⚡ 分期设置',periods:'总期数',interval:'每期间隔',unit:'间隔单位',month:'个月',week:'周',day:'天',stockName:'股票名称',ticker:'代号',buyPrice:'买入价',shares:'股数',curPrice:'当前市价',debitAcct:'扣款账户',crypto:'🪙 加密货币',stock:'📈 股票',from:'从（转出）',to:'到（转入）',add:'新增',noRecord:'本月暂无记录',dailyFlow:'每日收支',expByCategory:'支出分类',incByCategory:'收入分类',custom:'自定义',startDate:'开始日期',endDate:'结束日期',apply:'应用',bankAccounts:'银行账户',creditCards:'信用卡',addAccount:'新增账户',bank:'银行',creditCard:'信用卡',balance:'余额',dueDay:'自动扣款日（几号）',execTransfer:'执行转账',noInvest:'暂无投资记录',totalPnl:'总损益',syncTitle:'Google Sheets 同步',loginGoogle:'登录 Google 账号',syncNow:'立即同步',logout:'退出',catManage:'分类管理',expCats:'支出分类',incCats:'收入分类',longPressDelete:'点 × 可删除分类',catName:'分类名称',type:'类型',other:'其他',clearCache:'清除本地缓存',settings:'设置',accounts:'账户',detail:'明细',chart:'图表',name:'名称',topExp:'最高消费分类',topTx:'最高单笔',vsLastMonth:'vs 上月',notLoggedIn:'未登录',synced:'已同步',syncFail:'同步失败',loading:'加载中...',loginFail:'登录失败',initFail:'初始化失败',loginDesc:'登录 Google 账号以同步数据\n数据存储在您的 Google Sheets',loginNote:'首次需授权访问 Google Sheets',loginBtnText:'使用 Google 账号登录',totalExp:'区间总支出',instPrev:'共{n}期，每{i}{u}，每期{a}，首期{d}',autoPayBank:'自动扣款银行账户',dueDay2:'扣款日'},
-  'en':{bal:'Balance',bankTotal:'Bank Total',monthInc:'Income',monthExp:'Expenses',ccMonth:'Credit Card',invTotal:'Portfolio',analysis:'Spending Analysis',d7:'7 Days',d14:'14 Days',d21:'21 Days',thisMonth:'This Month',expense:'Expense',income:'Income',invest:'Invest',transfer:'Transfer',amount:'Amount',date:'Date',category:'Category',account:'Account',note:'Note',nonEssential:'Non-essential',installment:'Installment',installSettings:'⚡ Installment Setup',periods:'Periods',interval:'Interval',unit:'Unit',month:'Month(s)',week:'Week(s)',day:'Day(s)',stockName:'Stock Name',ticker:'Ticker',buyPrice:'Buy Price',shares:'Shares',curPrice:'Current Price',debitAcct:'Debit Account',crypto:'🪙 Crypto',stock:'📈 Stock',from:'From',to:'To',add:'Add',noRecord:'No records this month',dailyFlow:'Daily Flow',expByCategory:'Expense Categories',incByCategory:'Income Categories',custom:'Custom',startDate:'Start Date',endDate:'End Date',apply:'Apply',bankAccounts:'Bank Accounts',creditCards:'Credit Cards',addAccount:'Add Account',bank:'Bank',creditCard:'Credit Card',balance:'Balance',dueDay:'Auto-pay Day',execTransfer:'Transfer',noInvest:'No investments yet',totalPnl:'Total P&L',syncTitle:'Google Sheets Sync',loginGoogle:'Sign in with Google',syncNow:'Sync Now',logout:'Sign Out',catManage:'Categories',expCats:'Expense Categories',incCats:'Income Categories',longPressDelete:'Tap × to delete any category',catName:'Category Name',type:'Type',other:'Other',clearCache:'Clear Cache',settings:'Settings',accounts:'Accounts',detail:'Records',chart:'Charts',name:'Name',topExp:'Top Category',topTx:'Highest Transaction',vsLastMonth:'vs Last Month',notLoggedIn:'Not signed in',synced:'Synced',syncFail:'Sync failed',loading:'Loading...',loginFail:'Login failed',initFail:'Init failed',loginDesc:'Sign in with Google to sync\nStored in your Google Sheets\nAccess from any device',loginNote:'Google Sheets access required',loginBtnText:'Sign in with Google',totalExp:'Total Expenses',instPrev:'{n} payments, every {i} {u}, {a} each, first on {d}',autoPayBank:'Auto-pay Bank Account',dueDay2:'Pay Day'}
+  'zh-TW':{bal:'本月結餘',bankTotal:'銀行總額',monthInc:'本月收入',monthExp:'本月支出',ccMonth:'信用卡本月',invTotal:'投資總市值',totalAssets:'總資產（銀行＋投資）',analysis:'消費分析',d7:'7天',d14:'14天',d21:'21天',thisMonth:'本月',expense:'支出',income:'收入',invest:'投資',transfer:'轉帳',amount:'金額',date:'日期',category:'分類',account:'帳戶',note:'備註',nonEssential:'非必要支出',installment:'分期付款',installSettings:'⚡ 分期設定',periods:'總期數',interval:'每期間隔',unit:'間隔單位',month:'個月',week:'週',day:'天',stockName:'股票名稱',ticker:'代號',buyPrice:'買入價',shares:'股數',curPrice:'目前市價',debitAcct:'扣款帳戶',crypto:'🪙 加密貨幣',stock:'📈 股票',from:'從（轉出）',to:'到（轉入）',add:'新增',noRecord:'本月還沒有記錄',dailyFlow:'每日收支',expByCategory:'支出分類',incByCategory:'收入分類',custom:'自訂',startDate:'開始日期',endDate:'結束日期',apply:'套用',bankAccounts:'銀行帳戶',creditCards:'信用卡',addAccount:'新增帳戶',bank:'銀行',creditCard:'信用卡',balance:'餘額',dueDay:'自動扣款日（幾號）',statementBuffer:'結帳緩衝期（天）',statementBufferHint:'扣款日前這幾天內的消費，會延到下期才扣',execTransfer:'執行轉帳',noInvest:'還沒有投資記錄',totalPnl:'總損益',syncTitle:'Google Sheets 同步',loginGoogle:'登入 Google 帳號',syncNow:'立即同步',logout:'登出',catManage:'分類管理',expCats:'支出分類',incCats:'收入分類',longPressDelete:'點 × 可刪除分類（包含預設分類）',catName:'分類名稱',type:'類型',other:'其他',clearCache:'清除本機快取',settings:'設定',accounts:'帳戶',detail:'明細',chart:'圖表',name:'名稱',topExp:'最高消費分類',topTx:'最高單筆',vsLastMonth:'vs 上月',notLoggedIn:'未登入',synced:'已同步',syncFail:'同步失敗',loading:'載入中...',loginFail:'登入失敗',initFail:'初始化失敗',loginDesc:'登入 Google 帳號以同步資料\n資料存在你的 Google Sheets\n手機電腦共用同一份',loginNote:'首次需授權存取 Google Sheets',loginBtnText:'使用 Google 帳號登入',totalExp:'區間總支出',instPrev:'共{n}期，每{i}{u}，每期{a}，首期{d}',autoPayBank:'自動扣款銀行帳戶',dueDay2:'扣款日'},
+  'zh-CN':{bal:'本月结余',bankTotal:'银行总额',monthInc:'本月收入',monthExp:'本月支出',ccMonth:'信用卡本月',invTotal:'投资总市值',totalAssets:'总资产（银行＋投资）',analysis:'消费分析',d7:'7天',d14:'14天',d21:'21天',thisMonth:'本月',expense:'支出',income:'收入',invest:'投资',transfer:'转账',amount:'金额',date:'日期',category:'分类',account:'账户',note:'备注',nonEssential:'非必要支出',installment:'分期付款',installSettings:'⚡ 分期设置',periods:'总期数',interval:'每期间隔',unit:'间隔单位',month:'个月',week:'周',day:'天',stockName:'股票名称',ticker:'代号',buyPrice:'买入价',shares:'股数',curPrice:'当前市价',debitAcct:'扣款账户',crypto:'🪙 加密货币',stock:'📈 股票',from:'从（转出）',to:'到（转入）',add:'新增',noRecord:'本月暂无记录',dailyFlow:'每日收支',expByCategory:'支出分类',incByCategory:'收入分类',custom:'自定义',startDate:'开始日期',endDate:'结束日期',apply:'应用',bankAccounts:'银行账户',creditCards:'信用卡',addAccount:'新增账户',bank:'银行',creditCard:'信用卡',balance:'余额',dueDay:'自动扣款日（几号）',statementBuffer:'结账缓冲期（天）',statementBufferHint:'扣款日前这几天内的消费，会延到下期才扣',execTransfer:'执行转账',noInvest:'暂无投资记录',totalPnl:'总损益',syncTitle:'Google Sheets 同步',loginGoogle:'登录 Google 账号',syncNow:'立即同步',logout:'退出',catManage:'分类管理',expCats:'支出分类',incCats:'收入分类',longPressDelete:'点 × 可删除分类',catName:'分类名称',type:'类型',other:'其他',clearCache:'清除本地缓存',settings:'设置',accounts:'账户',detail:'明细',chart:'图表',name:'名称',topExp:'最高消费分类',topTx:'最高单笔',vsLastMonth:'vs 上月',notLoggedIn:'未登录',synced:'已同步',syncFail:'同步失败',loading:'加载中...',loginFail:'登录失败',initFail:'初始化失败',loginDesc:'登录 Google 账号以同步数据\n数据存储在您的 Google Sheets',loginNote:'首次需授权访问 Google Sheets',loginBtnText:'使用 Google 账号登录',totalExp:'区间总支出',instPrev:'共{n}期，每{i}{u}，每期{a}，首期{d}',autoPayBank:'自动扣款银行账户',dueDay2:'扣款日'},
+  'en':{bal:'Balance',bankTotal:'Bank Total',monthInc:'Income',monthExp:'Expenses',ccMonth:'Credit Card',invTotal:'Portfolio',totalAssets:'Total Assets (Bank + Investments)',analysis:'Spending Analysis',d7:'7 Days',d14:'14 Days',d21:'21 Days',thisMonth:'This Month',expense:'Expense',income:'Income',invest:'Invest',transfer:'Transfer',amount:'Amount',date:'Date',category:'Category',account:'Account',note:'Note',nonEssential:'Non-essential',installment:'Installment',installSettings:'⚡ Installment Setup',periods:'Periods',interval:'Interval',unit:'Unit',month:'Month(s)',week:'Week(s)',day:'Day(s)',stockName:'Stock Name',ticker:'Ticker',buyPrice:'Buy Price',shares:'Shares',curPrice:'Current Price',debitAcct:'Debit Account',crypto:'🪙 Crypto',stock:'📈 Stock',from:'From',to:'To',add:'Add',noRecord:'No records this month',dailyFlow:'Daily Flow',expByCategory:'Expense Categories',incByCategory:'Income Categories',custom:'Custom',startDate:'Start Date',endDate:'End Date',apply:'Apply',bankAccounts:'Bank Accounts',creditCards:'Credit Cards',addAccount:'Add Account',bank:'Bank',creditCard:'Credit Card',balance:'Balance',dueDay:'Auto-pay Day',statementBuffer:'Statement Buffer (days)',statementBufferHint:'Expenses within this many days before due date roll to next cycle',execTransfer:'Transfer',noInvest:'No investments yet',totalPnl:'Total P&L',syncTitle:'Google Sheets Sync',loginGoogle:'Sign in with Google',syncNow:'Sync Now',logout:'Sign Out',catManage:'Categories',expCats:'Expense Categories',incCats:'Income Categories',longPressDelete:'Tap × to delete any category',catName:'Category Name',type:'Type',other:'Other',clearCache:'Clear Cache',settings:'Settings',accounts:'Accounts',detail:'Records',chart:'Charts',name:'Name',topExp:'Top Category',topTx:'Highest Transaction',vsLastMonth:'vs Last Month',notLoggedIn:'Not signed in',synced:'Synced',syncFail:'Sync failed',loading:'Loading...',loginFail:'Login failed',initFail:'Init failed',loginDesc:'Sign in with Google to sync\nStored in your Google Sheets\nAccess from any device',loginNote:'Google Sheets access required',loginBtnText:'Sign in with Google',totalExp:'Total Expenses',instPrev:'{n} payments, every {i} {u}, {a} each, first on {d}',autoPayBank:'Auto-pay Bank Account',dueDay2:'Pay Day'}
 };
 let lang='zh-TW';
 function T(k){return LANGS[lang][k]||k;}
@@ -473,12 +481,12 @@ function mlabel(y,m){return lang==='en'?`${MN_EN[m]} ${y}`:`${y}年${MN_ZH[m]}`;
 let state={txs:[],accounts:[],investments:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};
 let curYear=new Date().getFullYear(),curMonth=new Date().getMonth();
 let txType='expense',acctType='bank',invType='stock';
-let isOpt=false,isInst=false,hideBank=false,hideInv=false,analysisRange=7,chartRange='month',chartStart='',chartEnd='';
+let isOpt=false,isInst=false,hideBank=false,hideInv=false,hideTotal=false,analysisRange=7,chartRange='month',chartStart='',chartEnd='';
 let barChart=null,pieExpChart=null,pieIncChart=null;
 let accessToken=null,syncing=false,tokenClient=null,lastSS='',lastSL='';
 
-function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,lang}));}catch(e){}}
-function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;lang=p.lang||lang;}}catch(e){}}
+function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,hideTotal,lang}));}catch(e){}}
+function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;hideTotal=p.hideTotal||false;lang=p.lang||lang;}}catch(e){}}
 function clearStateKeepPrefs(){state={txs:[],accounts:[],investments:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};}
 function clearLocal(){if(confirm(T('clearCache')+'?')){localStorage.removeItem(CACHE_KEY);localStorage.removeItem('fk_lang');location.reload();}}
 
@@ -702,7 +710,7 @@ async function ensureSheets(){
     const needed=['Transactions','Accounts','Investments','Categories'].filter(s=>!existing.includes(s));
     if(needed.length){
       await shReq('POST',':batchUpdate',{requests:needed.map(title=>({addSheet:{properties:{title}}}))});
-      const headers={Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],Accounts:['id','type','name','balance','dueDay','debitBankId'],Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name']};
+      const headers={Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name']};
       await shReq('POST','/values:batchUpdate',{valueInputOption:'RAW',data:needed.map(s=>({range:`${s}!A1`,values:[headers[s]]}))});
     }
   }catch(e){setSS('err',T('initFail'));}
@@ -716,7 +724,7 @@ async function loadFromSheets(){
     let autoId=1000;
     const parseId=v=>{const n=parseInt(v);return(!isNaN(n)&&n>0)?n:null;};
     const newTxs=(vr[0]?.values||[]).filter(r=>r&&r.length>=3).map(r=>({id:parseId(r[0])||(autoId++),type:r[1]||'expense',amount:parseFloat(r[2])||0,cat:r[3]||'',note:r[4]||'',date:r[5]||today(),source:r[6]||'',optional:r[7]==='true',confirmed:r[8]==='true',installGroup:r[9]||'',installIndex:parseInt(r[10])||0,installTotal:parseInt(r[11])||0}));
-    const newAccts=(vr[1]?.values||[]).filter(r=>r&&r.length>=2).map(r=>({id:parseId(r[0])||(autoId++),type:r[1]||'bank',name:r[2]||'',balance:parseFloat(r[3])||0,dueDay:parseInt(r[4])||0,debitBankId:r[5]||''}));
+    const newAccts=(vr[1]?.values||[]).filter(r=>r&&r.length>=2).map(r=>({id:parseId(r[0])||(autoId++),type:r[1]||'bank',name:r[2]||'',balance:parseFloat(r[3])||0,dueDay:parseInt(r[4])||0,debitBankId:r[5]||'',statementBuffer:r[6]!==undefined&&r[6]!==''?parseInt(r[6]):7}));
     const newInvs=(vr[2]?.values||[]).filter(r=>r&&r.length>=3).map(r=>({id:parseId(r[0])||(autoId++),invType:r[1]||'stock',name:r[2]||'',ticker:r[3]||'',price:parseFloat(r[4])||0,shares:parseFloat(r[5])||0,curPrice:parseFloat(r[6])||0,date:r[7]||today(),source:r[8]||''}));
     const catRows=vr[3]?.values||[];
     const newCats=catRows.length?{expense:[],income:[]}:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']};
@@ -745,7 +753,7 @@ async function writeSheet(name,rows){
     // 2. Write header + data starting at A1
     const headers={
       Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],
-      Accounts:['id','type','name','balance','dueDay','debitBankId'],
+      Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],
       Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],
       Categories:['type','name']
     };
@@ -767,7 +775,7 @@ async function syncAll(){
     // Write all sheets in parallel for speed
     await Promise.all([
       writeSheet('Transactions',state.txs.map(x=>[x.id,x.type,x.amount,x.cat,x.note,x.date,x.source||'',String(x.optional||false),String(x.confirmed||false),x.installGroup||'',x.installIndex||0,x.installTotal||0])),
-      writeSheet('Accounts',state.accounts.map(x=>[x.id,x.type,x.name,x.balance,x.dueDay||'',x.debitBankId||''])),
+      writeSheet('Accounts',state.accounts.map(x=>[x.id,x.type,x.name,x.balance,x.dueDay||'',x.debitBankId||'',x.statementBuffer!==undefined?x.statementBuffer:7])),
       writeSheet('Investments',state.investments.map(x=>[x.id,x.invType||'stock',x.name,x.ticker,x.price,x.shares,x.curPrice,x.date,x.source||''])),
       writeSheet('Categories',[...state.cats.expense.map(c=>['expense',c]),...state.cats.income.map(c=>['income',c])])
     ]);
@@ -789,6 +797,7 @@ function setSS(s,l){lastSS=s;lastSL=l;['sync-dot','sync-dot2'].forEach(id=>{cons
 
 // ── CC auto-pay ───────────────────────────────────────────────────────────────
 function stripTime(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+const CC_STATEMENT_BUFFER_DEFAULT=7; // fallback if a card has no custom buffer set
 function getNextDueDate(dueDay,fromDate){
   // Returns the next occurrence of dueDay-of-month, rolling to next month if needed,
   // and clamping to the last day of a month if dueDay exceeds it (e.g. 31 in Feb).
@@ -804,19 +813,39 @@ function getNextDueDate(dueDay,fromDate){
   }
   return candidate;
 }
+// The "statement closing date" for a given due date — expenses AFTER this date
+// belong to the NEXT billing cycle, not the upcoming payment. Buffer is per-card.
+function getStatementCloseDate(dueDate,bufferDays){
+  const d=new Date(dueDate);
+  d.setDate(d.getDate()-(bufferDays!==undefined&&bufferDays!==null?bufferDays:CC_STATEMENT_BUFFER_DEFAULT));
+  return d;
+}
 
 function checkCCAutoPay(){
   const todayDate=new Date();
   const todayD=todayDate.getDate();
-  state.accounts.filter(a=>a.type==='cc'&&a.dueDay>0&&a.dueDay===todayD&&a.debitBankId&&a.balance>0).forEach(cc=>{
+  state.accounts.filter(a=>a.type==='cc'&&a.dueDay>0&&a.dueDay===todayD&&a.debitBankId).forEach(cc=>{
     const bank=state.accounts.find(b=>String(b.id)===String(cc.debitBankId));
     if(!bank)return;
     const alreadyPaid=state.txs.some(tx=>tx.type==='transfer'&&tx.note&&tx.note.includes(cc.name)&&tx.date===today());
     if(alreadyPaid)return;
-    const amt=cc.balance;
-    bank.balance=Math.round((bank.balance-amt)*100)/100;
-    cc.balance=0;
-    state.txs.unshift({id:safeNextId(),type:'transfer',amount:amt,cat:'轉帳',note:`自動繳費 ${cc.name}`,date:today(),source:String(bank.id),optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
+
+    // Determine statement close date for THIS due-date occurrence, using this card's own buffer.
+    const dueDateObj=stripTime(todayDate); // today IS the due date since todayD===dueDay
+    const closeDate=getStatementCloseDate(dueDateObj,cc.statementBuffer);
+
+    // Only pay for CC expenses dated on/before the statement close date.
+    // Expenses dated after close date belong to next cycle and stay on the card.
+    const ccExpenseTxs=state.txs.filter(tx=>tx.type==='expense'&&String(tx.source)===String(cc.id));
+    const payableAmt=ccExpenseTxs.filter(tx=>stripTime(new Date(tx.date))<=closeDate).reduce((s,tx)=>s+tx.amount,0);
+    const payableRounded=Math.round(payableAmt*100)/100;
+
+    if(payableRounded<=0)return; // nothing old enough to pay yet
+
+    bank.balance=Math.round((bank.balance-payableRounded)*100)/100;
+    cc.balance=Math.round((cc.balance-payableRounded)*100)/100;
+    if(cc.balance<0)cc.balance=0;
+    state.txs.unshift({id:safeNextId(),type:'transfer',amount:payableRounded,cat:'轉帳',note:`自動繳費 ${cc.name}`,date:today(),source:String(bank.id),optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
     saveCache();syncAll();
   });
 }
@@ -826,7 +855,12 @@ function clearE(id){const el=document.getElementById(id);if(el)el.style.display=
 function showE(id,m){const el=document.getElementById(id);el.textContent=m;el.style.display='block';}
 function changeMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}saveCache();render();}
 function switchTab(tab,el){document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));document.getElementById('panel-'+tab).classList.add('on');}
-function toggleHide(w){if(w==='bank'){hideBank=!hideBank;document.getElementById('eye-bank').textContent=hideBank?'🙈':'👁';document.getElementById('s-bank').textContent=hideBank?'••••':fmt(state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0));}else{hideInv=!hideInv;document.getElementById('eye-inv').textContent=hideInv?'🙈':'👁';document.getElementById('s-inv').textContent=hideInv?'••••':fmt(state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0));}saveCache();}
+function toggleHide(w){
+  if(w==='bank'){hideBank=!hideBank;document.getElementById('eye-bank').textContent=hideBank?'🙈':'👁';}
+  else if(w==='inv'){hideInv=!hideInv;document.getElementById('eye-inv').textContent=hideInv?'🙈':'👁';}
+  else if(w==='total'){hideTotal=!hideTotal;document.getElementById('eye-total').textContent=hideTotal?'🙈':'👁';}
+  saveCache();render();
+}
 
 function setType(tp){
   txType=tp;isOpt=false;isInst=false;
@@ -961,18 +995,19 @@ function addAcct(){
   const bal=parseFloat(document.getElementById('a-bal').value)||0;
   const dueDay=acctType==='cc'?(parseInt(document.getElementById('a-due').value)||0):0;
   const debitBankId=acctType==='cc'?document.getElementById('a-debit-bank').value:'';
+  const statementBuffer=acctType==='cc'?(parseInt(document.getElementById('a-buffer').value)>=0?parseInt(document.getElementById('a-buffer').value):7):undefined;
   const ex=state.accounts.find(a=>a.name===name&&a.type===acctType);
   if(ex){
-    ex.balance=bal;if(dueDay)ex.dueDay=dueDay;if(debitBankId!==undefined)ex.debitBankId=debitBankId;
+    ex.balance=bal;if(dueDay)ex.dueDay=dueDay;if(debitBankId!==undefined)ex.debitBankId=debitBankId;if(statementBuffer!==undefined)ex.statementBuffer=statementBuffer;
   } else {
     if(!state.nextId||state.nextId<=0||isNaN(state.nextId)){
       const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id)].filter(n=>n&&n>0);
       state.nextId=allIds.length>0?Math.max(...allIds)+1:1;
     }
     const newId=safeNextId();
-    state.accounts.push({id:newId,type:acctType,name,balance:bal,dueDay,debitBankId});
+    state.accounts.push({id:newId,type:acctType,name,balance:bal,dueDay,debitBankId,statementBuffer:statementBuffer!==undefined?statementBuffer:7});
   }
-  document.getElementById('a-name').value='';document.getElementById('a-bal').value='';document.getElementById('a-due').value='';
+  document.getElementById('a-name').value='';document.getElementById('a-bal').value='';document.getElementById('a-due').value='';document.getElementById('a-buffer').value='7';
   saveCache();render();syncAll();
 }
 function toggleConfirm(id){const tx=state.txs.find(x=>x.id===id);if(tx)tx.confirmed=!tx.confirmed;saveCache();render();syncAll();}
@@ -1026,10 +1061,47 @@ function renderAnalysis(){
   const lastTotal=lastTxs.reduce((s,x)=>s+x.amount,0);
   const diff=total-lastTotal;
   const pct=lastTotal>0?((diff/lastTotal)*100).toFixed(1):null;
+
+  // Total assets for percentage-of-assets calculations
+  const bankTotal=state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0);
+  const invTotal=state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
+  const totalAssets=bankTotal+invTotal;
+  const pctOfAssets=(amt)=>totalAssets>0?((amt/totalAssets)*100).toFixed(1)+'%':'—';
+  const pctOfTotal=(amt)=>total>0?((amt/total)*100).toFixed(1)+'%':'—';
+
+  // 最高單筆: 分類-備註-金額 format + % of total assets
+  const topTxLabel=topTx?`${topTx.cat}${topTx.note?' - '+topTx.note:''} - ${fmt(topTx.amount)}`:'—';
+  const topTxAssetPct=topTx?pctOfAssets(topTx.amount):null;
+
+  // 最高消費分類: amount + % of period total + % of total assets
+  const topCatAssetPct=topCat?pctOfAssets(topCat[1]):null;
+  const topCatOfTotalPct=topCat?pctOfTotal(topCat[1]):null;
+
+  // 區間總支出: % of total assets
+  const totalAssetPct=pctOfAssets(total);
+
   document.getElementById('analysis-content').innerHTML=`
-    <div class="analysis-row"><span class="analysis-label">${T('totalExp')}</span><span class="analysis-val neg">${fmt(total)}</span></div>
-    <div class="analysis-row"><span class="analysis-label">${T('topExp')}</span><span class="analysis-val">${topCat?`${topCat[0]} · ${fmt(topCat[1])}`:'—'}</span></div>
-    <div class="analysis-row"><span class="analysis-label">${T('topTx')}</span><span class="analysis-val">${topTx?`${topTx.note||topTx.cat} · ${fmt(topTx.amount)}`:'—'}</span></div>
+    <div class="analysis-row" style="flex-direction:column;align-items:flex-start;gap:2px">
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <span class="analysis-label">${T('totalExp')}</span>
+        <span class="analysis-val neg">${fmt(total)}</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3)">${lang==='en'?'of total assets: ':'占總資產：'}${totalAssetPct}</div>
+    </div>
+    <div class="analysis-row" style="flex-direction:column;align-items:flex-start;gap:2px">
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <span class="analysis-label">${T('topExp')}</span>
+        <span class="analysis-val">${topCat?`${topCat[0]} · ${fmt(topCat[1])}`:'—'}</span>
+      </div>
+      ${topCat?`<div style="font-size:10px;color:var(--text3)">${lang==='en'?'of period: ':'占區間：'}${topCatOfTotalPct} · ${lang==='en'?'of assets: ':'占總資產：'}${topCatAssetPct}</div>`:''}
+    </div>
+    <div class="analysis-row" style="flex-direction:column;align-items:flex-start;gap:2px">
+      <div style="display:flex;justify-content:space-between;width:100%;gap:8px">
+        <span class="analysis-label" style="flex-shrink:0">${T('topTx')}</span>
+        <span class="analysis-val" style="text-align:right">${topTxLabel}</span>
+      </div>
+      ${topTx?`<div style="font-size:10px;color:var(--text3)">${lang==='en'?'of total assets: ':'占總資產：'}${topTxAssetPct}</div>`:''}
+    </div>
     ${analysisRangeVal===0?`<div class="analysis-row" style="flex-direction:column;align-items:flex-start;gap:5px"><span class="analysis-label">${T('vsLastMonth')} ${fmt(lastTotal)}</span><div style="width:100%"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--text3)">${lang==='en'?'Last Month':'上月'}</span><span class="${diff>=0?'neg':'pos'}">${diff>=0?'+':'-'}${fmt(Math.abs(diff))}${pct!==null?` (${diff>=0?'+':''}${pct}%)`:''}  </span></div><div class="compare-bar"><div class="compare-fill" style="width:${lastTotal>0?Math.min(100,lastTotal/Math.max(total,lastTotal)*100):0}%;background:var(--text3)"></div></div><div class="compare-bar" style="margin-top:3px"><div class="compare-fill" style="width:${Math.min(100,total/Math.max(total,lastTotal,1)*100)}%;background:${diff>0?'var(--red)':'var(--green)'}"></div></div></div></div>`:''}
   `;
 }
@@ -1055,6 +1127,7 @@ function render(){
   const ccSpend=mt.filter(x=>x.type==='expense'&&x.source&&state.accounts.find(a=>String(a.id)===x.source&&a.type==='cc')).reduce((s,x)=>s+x.amount,0);
   const bankTotal=state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0);
   const invTotal=state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
+  const totalAssets=bankTotal+invTotal;
   const bal=inc-exp;
   document.getElementById('s-inc').textContent=fmt(inc);
   document.getElementById('s-exp').textContent=fmt(exp);
@@ -1063,6 +1136,18 @@ function render(){
   document.getElementById('s-bank').textContent=hideBank?'••••':fmt(bankTotal);
   document.getElementById('s-cc').textContent=fmt(ccSpend);
   document.getElementById('s-inv').textContent=hideInv?'••••':fmt(invTotal);
+  document.getElementById('s-total').textContent=hideTotal?'••••':fmt(totalAssets);
+
+  // 本月支出 sub-labels: % of bank total, % of total assets
+  const expVsBankPct=bankTotal>0?((exp/bankTotal)*100).toFixed(1):null;
+  const expVsTotalPct=totalAssets>0?((exp/totalAssets)*100).toFixed(1):null;
+  const expSubEl=document.getElementById('s-exp-sub');
+  if(expSubEl){
+    const parts=[];
+    if(expVsBankPct!==null)parts.push((lang==='en'?'Bank: ':'銀行 ')+expVsBankPct+'%');
+    if(expVsTotalPct!==null)parts.push((lang==='en'?'Assets: ':'總資產 ')+expVsTotalPct+'%');
+    expSubEl.textContent=parts.join(' · ');
+  }
 
   const nowDate=new Date();
   const alertHtml=state.accounts.filter(a=>a.type==='cc'&&a.dueDay>0).map(a=>{
@@ -1095,7 +1180,7 @@ function render(){
   // accounts
   const banks=state.accounts.filter(a=>a.type==='bank');const ccs=state.accounts.filter(a=>a.type==='cc');
   document.getElementById('bank-list').innerHTML=banks.length?banks.map(a=>`<div class="acct-item"><span style="font-size:18px">🏦</span><div style="flex:1"><div class="acct-name">${a.name}</div></div><span style="font-size:13px;font-weight:700;color:var(--gold2)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No bank accounts':'還沒有銀行帳戶'}</div>`;
-  document.getElementById('cc-list').innerHTML=ccs.length?ccs.map(a=>{const bank=state.accounts.find(b=>String(b.id)===String(a.debitBankId));return`<div class="acct-item"><span style="font-size:18px">💳</span><div style="flex:1"><div class="acct-name">${a.name}</div>${a.dueDay?`<div class="acct-sub">${T('dueDay2')} ${a.dueDay} ${lang==='en'?'':'號'}${bank?` · ${bank.name}`:''}</div>`:''}</div><span style="font-size:13px;font-weight:700;color:var(--red)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`;}).join(''):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No credit cards':'還沒有信用卡'}</div>`;
+  document.getElementById('cc-list').innerHTML=ccs.length?ccs.map(a=>{const bank=state.accounts.find(b=>String(b.id)===String(a.debitBankId));const buf=a.statementBuffer!==undefined?a.statementBuffer:7;return`<div class="acct-item"><span style="font-size:18px">💳</span><div style="flex:1"><div class="acct-name">${a.name}</div>${a.dueDay?`<div class="acct-sub">${T('dueDay2')} ${a.dueDay} ${lang==='en'?'':'號'}${bank?` · ${bank.name}`:''} · ${lang==='en'?'buffer':'緩衝'} ${buf}${lang==='en'?'d':'天'}</div>`:''}</div><span style="font-size:13px;font-weight:700;color:var(--red)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`;}).join(''):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No credit cards':'還沒有信用卡'}</div>`;
 
   // investments
   const invT=state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
