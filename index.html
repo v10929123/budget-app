@@ -426,7 +426,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
       </div>
       <div class="card">
         <div class="card-title"><div class="dot"></div><span data-t="other">其他</span></div>
-        <button class="btn-sm btn-del" onclick="clearLocal()" data-t="clearCache">清除本機快取</button>
+        <button class="btn-sm btn-del" onclick="clearLocal()" data-t="clearCache" style="margin-bottom:8px">清除本機快取</button><br>
+        <button class="btn-sm" onclick="diagSync()" style="margin-top:6px;color:var(--gold2);border-color:var(--gold)">🔍 診斷同步問題</button>
+        <div id="diag-out" style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.6;white-space:pre-wrap"></div>
       </div>
     </div>
   </div>
@@ -479,6 +481,54 @@ function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,cu
 function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;lang=p.lang||lang;}}catch(e){}}
 function clearStateKeepPrefs(){state={txs:[],accounts:[],investments:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};}
 function clearLocal(){if(confirm(T('clearCache')+'?')){localStorage.removeItem(CACHE_KEY);localStorage.removeItem('fk_lang');location.reload();}}
+
+async function diagSync(){
+  const out=document.getElementById('diag-out');
+  out.textContent='開始診斷...\n';
+  if(!accessToken){out.textContent+='❌ 未登入，請先登入\n';return;}
+  try{
+    // Step 1: Read current Accounts from Sheets
+    out.textContent+='1. 讀取 Accounts 工作表...\n';
+    const res=await shReq('GET','/values/'+encodeURIComponent('Accounts!A1:Z100'));
+    const rows=res.values||[];
+    out.textContent+='   Sheets 共有 '+rows.length+' 行（含標題）\n';
+    rows.forEach((r,i)=>{ out.textContent+='   行'+i+': '+JSON.stringify(r)+'\n'; });
+
+    // Step 2: Try clearing just A1:Z100
+    out.textContent+='2. 清除 A1:Z100...\n';
+    await shReq('POST','/values/'+encodeURIComponent('Accounts!A1:Z100')+':clear',{});
+    out.textContent+='   清除完成\n';
+
+    // Step 3: Read again to verify
+    const res2=await shReq('GET','/values/'+encodeURIComponent('Accounts!A1:Z100'));
+    const rows2=res2.values||[];
+    out.textContent+='3. 清除後讀取，剩 '+rows2.length+' 行\n';
+    if(rows2.length>0){
+      out.textContent+='   ⚠️ 清除失敗！還有資料：\n';
+      rows2.forEach((r,i)=>{ out.textContent+='   行'+i+': '+JSON.stringify(r)+'\n'; });
+    } else {
+      out.textContent+='   ✅ 清除成功\n';
+    }
+
+    // Step 4: Write test data
+    out.textContent+='4. 寫入測試資料...\n';
+    const testData=[['id','type','name','balance'],['999','bank','TEST_DIAG','0']];
+    await shReq('PUT','/values/'+encodeURIComponent('Accounts!A1')+'?valueInputOption=RAW',{range:'Accounts!A1',values:testData});
+
+    // Step 5: Read to verify write
+    const res3=await shReq('GET','/values/'+encodeURIComponent('Accounts!A1:D5'));
+    out.textContent+='5. 寫入後讀取：\n';
+    (res3.values||[]).forEach((r,i)=>{ out.textContent+='   行'+i+': '+JSON.stringify(r)+'\n'; });
+
+    // Step 6: Now restore real data
+    out.textContent+='6. 還原真實資料...\n';
+    await syncAll();
+    out.textContent+='✅ 診斷完成，請查看 Google Sheets 確認\n';
+  }catch(e){
+    out.textContent+='❌ 錯誤：'+e.message+'\n';
+    console.error('[diag]',e);
+  }
+}
 
 // ── Google OAuth with auto-refresh ────────────────────────────────────────────
 function initGoogleAuth(){
