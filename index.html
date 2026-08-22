@@ -6,40 +6,56 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Finance Keeper">
-<meta name="theme-color" content="#0a0a0f">
+<meta name="theme-color" content="#0a0a0a">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.png">
 <title>Finance Keeper</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{--bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--bg4:#22222e;--surface:#16161f;--surface2:#1e1e2a;--surface3:#252535;--border:#2a2a3a;--border2:#3a3a50;--text:#f0f0ff;--text2:#a0a0c0;--text3:#60607a;--blue:#4d9fff;--blue2:#2a78d6;--green:#00d68f;--red:#ff4d6d;--purple:#a78bfa;--amber:#fbbf24;--cyan:#22d3ee;--r:12px}
+:root{
+  --bg:#08080d;--bg2:#0f0f16;--bg3:#161620;--bg4:#1e1e2a;
+  --surface:#111118;--surface2:#181820;--surface3:#202028;
+  --border:#252530;--border2:#353545;
+  --text:#f0ead6;--text2:#b0a890;--text3:#706858;
+  --gold:#c9a84c;--gold2:#e8c96a;--gold3:#f5e098;--goldglow:rgba(201,168,76,.25);
+  --blue:#4d9fff;--green:#00d68f;--red:#ff4d6d;--purple:#a78bfa;--amber:#fbbf24;--cyan:#22d3ee;
+  --r:13px;
+}
 html,body{height:100%;overflow:hidden;background:var(--bg)}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);font-size:14px}
 .app{display:flex;flex-direction:column;height:100%;max-width:500px;margin:0 auto}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem .625rem;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;padding-top:calc(.75rem + env(safe-area-inset-top));gap:6px;flex-wrap:wrap}
-.topbar h1{font-size:15px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap}
-.topbar-right{display:flex;align-items:center;gap:5px;flex-wrap:nowrap}
+
+/* ── topbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem .6rem;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;padding-top:calc(.7rem + env(safe-area-inset-top));gap:6px;position:relative}
+.topbar h1{font-size:15px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--gold3),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap;letter-spacing:.5px;text-shadow:none}
+.topbar-right{display:flex;align-items:center;gap:5px}
 .month-nav{display:flex;align-items:center;gap:2px}
-.mnbtn{background:var(--surface3);border:1px solid var(--border);border-radius:7px;width:26px;height:26px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.mnbtn{background:var(--surface3);border:1px solid var(--border2);border-radius:7px;width:26px;height:26px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--gold)}
 .mlabel{font-size:12px;font-weight:600;min-width:64px;text-align:center;color:var(--text)}
-.icon-btn{background:var(--surface3);border:1px solid var(--border);border-radius:7px;padding:4px 7px;font-size:11px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:3px;white-space:nowrap}
+.icon-btn{background:var(--surface3);border:1px solid var(--border2);border-radius:7px;padding:4px 7px;font-size:11px;cursor:pointer;color:var(--gold);display:flex;align-items:center;gap:3px;white-space:nowrap}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0}
 .sync-dot.ok{background:var(--green)}.sync-dot.err{background:var(--red)}.sync-dot.loading{background:var(--amber);animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── tabbar ── */
 .tabbar{display:flex;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
 .tabbtn{flex:1;display:flex;flex-direction:column;align-items:center;padding:6px 2px 4px;cursor:pointer;border:none;background:none;gap:2px;position:relative}
 .tabbtn .ico{font-size:18px}.tabbtn .lbl{font-size:10px;color:var(--text3)}
-.tabbtn.on .lbl{color:var(--blue)}.tabbtn.on .ico{transform:scale(1.1)}
-.tabbtn.on::after{content:'';position:absolute;top:0;left:25%;right:25%;height:2px;background:var(--blue);border-radius:0 0 2px 2px}
+.tabbtn.on .lbl{color:var(--gold2)}.tabbtn.on .ico{transform:scale(1.1)}
+.tabbtn.on::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:0 0 2px 2px}
+
+/* ── panels ── */
 .panels{flex:1;overflow:hidden;position:relative}
 .panel{position:absolute;inset:0;overflow-y:auto;display:none;padding:12px 13px 24px;-webkit-overflow-scrolling:touch}
 .panel.on{display:block}
+
+/* ── summary ── */
 .sum-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:12px}
 .sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.6rem .8rem;position:relative;overflow:hidden}
 .sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px}
-.sum-card.c-bal::before{background:linear-gradient(90deg,var(--blue),var(--cyan))}
-.sum-card.c-bank::before{background:var(--blue)}
+.sum-card.c-bal::before{background:linear-gradient(90deg,var(--gold),var(--gold3))}
+.sum-card.c-bank::before{background:var(--gold2)}
 .sum-card.c-inc::before{background:var(--green)}
 .sum-card.c-exp::before{background:var(--red)}
 .sum-card.c-cc::before{background:var(--amber)}
@@ -47,97 +63,130 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 .sum-label{font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;justify-content:space-between}
 .sum-val{font-size:16px;font-weight:700}
 .eye-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:0;line-height:1}
-.pos{color:var(--green)}.neg{color:var(--red)}.blu{color:var(--blue)}.pur{color:var(--purple)}.amb{color:var(--amber)}.cyn{color:var(--cyan)}
+.pos{color:var(--green)}.neg{color:var(--red)}.blu{color:var(--blue)}.pur{color:var(--purple)}.amb{color:var(--amber)}.gld{color:var(--gold2)}
+
+/* ── cards ── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:11px}
 .card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:11px;display:flex;align-items:center;gap:6px}
-.dot{width:4px;height:14px;border-radius:2px;background:var(--blue);flex-shrink:0}
+.dot{width:4px;height:14px;border-radius:2px;background:linear-gradient(var(--gold),var(--gold2));flex-shrink:0}
+
+/* ── type toggle ── */
 .type-tog{display:flex;background:var(--bg3);border-radius:9px;padding:3px;margin-bottom:11px;gap:2px}
 .tbtn{flex:1;padding:6px 2px;font-size:12px;border:none;border-radius:7px;cursor:pointer;background:transparent;color:var(--text3);white-space:nowrap;font-weight:500}
 .tbtn.on-exp{background:rgba(255,77,109,.2);color:var(--red)}
 .tbtn.on-inc{background:rgba(0,214,143,.2);color:var(--green)}
 .tbtn.on-inv{background:rgba(167,139,250,.2);color:var(--purple)}
-.tbtn.on-xfr{background:rgba(251,191,36,.2);color:var(--amber)}
+.tbtn.on-xfr{background:rgba(201,168,76,.2);color:var(--gold2)}
+
+/* ── form ── */
 .frow{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:9px}
 .fg{display:flex;flex-direction:column;gap:4px;margin-bottom:9px}
 .fg label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px}
-.fg input,.fg select{font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none}
-.fg input:focus,.fg select:focus{outline:none;border-color:var(--blue)}
-.fg select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2360607a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.fg input,.fg select{font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--gold)}
+.fg select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23706858' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
 .fg select option{background:var(--bg3);color:var(--text)}
-.check-row{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:9px;cursor:pointer;user-select:none}
+
+/* ── checkbox ── */
+.check-row{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;margin-bottom:9px;cursor:pointer;user-select:none}
 .chk{width:18px;height:18px;border-radius:5px;border:2px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.chk.on{background:var(--amber);border-color:var(--amber)}.chk.on::after{content:'✓';font-size:11px;color:#000;font-weight:700}
-.chk-lbl{font-size:13px;color:var(--text2)}.chk-lbl.on{color:var(--amber)}
-.inst-box{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 11px;margin-bottom:9px}
-.inst-box-title{font-size:11px;color:var(--blue);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px}
+.chk.on{background:var(--gold);border-color:var(--gold)}.chk.on::after{content:'✓';font-size:11px;color:#000;font-weight:700}
+.chk-lbl{font-size:13px;color:var(--text2)}.chk-lbl.on{color:var(--gold2)}
+
+/* ── installment box ── */
+.inst-box{background:var(--bg3);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:10px 11px;margin-bottom:9px}
+.inst-box-title{font-size:11px;color:var(--gold2);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px}
 .inst-preview{font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5}
-.btn-primary{width:100%;padding:12px;background:linear-gradient(135deg,var(--blue2),var(--blue));color:#fff;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-weight:600;margin-top:3px;letter-spacing:.2px}
-.btn-sm{padding:5px 9px;font-size:11px;border:1px solid var(--border);border-radius:6px;background:var(--surface3);cursor:pointer;color:var(--text2)}
+
+/* ── buttons ── */
+.btn-primary{width:100%;padding:12px;background:linear-gradient(135deg,#8a6a20,var(--gold),var(--gold2));color:#000;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-weight:700;margin-top:3px;letter-spacing:.3px}
+.btn-primary:active{opacity:.85}
+.btn-sm{padding:5px 9px;font-size:11px;border:1px solid var(--border2);border-radius:6px;background:var(--surface3);cursor:pointer;color:var(--text2)}
 .btn-del{border-color:rgba(255,77,109,.4);color:var(--red)}
 .ferr{font-size:12px;color:var(--red);margin-top:5px;display:none}
+
+/* ── tx list ── */
 .tx-list{display:flex;flex-direction:column;gap:5px}
 .tx{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 10px}
-.tx.opt-confirmed{border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.04)}
+.tx.opt-confirmed{border-color:rgba(201,168,76,.35);background:rgba(201,168,76,.04)}
 .tx-ico{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .tx-info{flex:1;min-width:0}
 .tx-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-meta{font-size:10px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .badge{font-size:9px;padding:1px 5px;border-radius:3px}
-.badge-opt{background:rgba(251,191,36,.18);color:var(--amber);border:1px solid rgba(251,191,36,.3)}
+.badge-opt{background:rgba(201,168,76,.18);color:var(--gold2);border:1px solid rgba(201,168,76,.3)}
 .badge-inst{background:rgba(77,159,255,.18);color:var(--blue);border:1px solid rgba(77,159,255,.3)}
 .tx-amt{font-size:13px;font-weight:700;white-space:nowrap}
 .tx-actions{display:flex;align-items:center;gap:3px;flex-shrink:0}
 .delbtn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:17px;padding:2px;line-height:1}
 .conf-btn{background:none;border:1px solid var(--border2);border-radius:5px;cursor:pointer;padding:2px 5px;font-size:10px;color:var(--text3);white-space:nowrap}
 .conf-btn.on{border-color:var(--green);color:var(--green)}
+
+/* ── acct items ── */
 .acct-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 10px;margin-bottom:5px}
 .acct-name{font-size:13px;font-weight:500;color:var(--text)}
 .acct-sub{font-size:10px;color:var(--text3);margin-top:1px}
-.alert-bar{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:9px;padding:8px 10px;margin-bottom:7px;font-size:12px;color:var(--amber)}
-.sec-title{font-size:11px;color:var(--text3);font-weight:600;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
-.empty{text-align:center;color:var(--text3);padding:1.5rem;font-size:13px;line-height:1.8}
-.inv-type-row{display:flex;gap:6px;margin-bottom:9px}
-.inv-tbtn{flex:1;padding:7px;font-size:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);cursor:pointer;color:var(--text2);text-align:center;font-weight:500}
-.inv-tbtn.on-stock{background:rgba(167,139,250,.2);color:var(--purple);border-color:var(--purple)}
-.inv-tbtn.on-crypto{background:rgba(34,211,238,.2);color:var(--cyan);border-color:var(--cyan)}
-/* chart */
-.chart-section{margin-bottom:12px}
-.chart-section-title{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
-.chart-range-row{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
-.range-btn{padding:4px 10px;font-size:11px;border:1px solid var(--border);border-radius:99px;background:var(--surface);cursor:pointer;color:var(--text3);font-weight:500}
-.range-btn.on{background:var(--blue2);color:#fff;border-color:var(--blue)}
-.pie-row{display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:12px;color:var(--text2)}
-.ldot{width:9px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0}
-/* analysis */
-.analysis-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:11px}
-.analysis-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.range-tabs{display:flex;gap:5px;margin-bottom:10px}
-.rtab{padding:4px 10px;font-size:11px;border:1px solid var(--border);border-radius:99px;background:var(--bg3);cursor:pointer;color:var(--text3);font-weight:500}
-.rtab.on{background:var(--blue2);color:#fff;border-color:var(--blue)}
+
+/* ── alerts ── */
+.alert-bar{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:9px;padding:8px 10px;margin-bottom:7px;font-size:12px;color:var(--gold2)}
+
+/* ── analysis ── */
+.analysis-card{background:var(--surface);border:1px solid rgba(201,168,76,.2);border-radius:var(--r);padding:13px;margin-bottom:11px}
+.analysis-title{font-size:13px;font-weight:600;color:var(--gold2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.range-tabs{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.rtab{padding:4px 10px;font-size:11px;border:1px solid var(--border2);border-radius:99px;background:var(--bg3);cursor:pointer;color:var(--text3);font-weight:500}
+.rtab.on{background:linear-gradient(135deg,#8a6a20,var(--gold));color:#000;border-color:var(--gold)}
 .analysis-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)}
 .analysis-row:last-child{border-bottom:none;padding-bottom:0}
 .analysis-label{font-size:12px;color:var(--text2)}
 .analysis-val{font-size:13px;font-weight:600}
 .compare-bar{height:5px;border-radius:3px;margin-top:5px;background:var(--bg3);overflow:hidden;position:relative}
 .compare-fill{height:100%;border-radius:3px;position:absolute;left:0;top:0}
-/* lang menu */
-.lang-menu{position:absolute;top:40px;right:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:4px;z-index:100;min-width:130px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+
+/* ── charts ── */
+.chart-range-row{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.range-btn{padding:4px 10px;font-size:11px;border:1px solid var(--border2);border-radius:99px;background:var(--surface);cursor:pointer;color:var(--text3);font-weight:500}
+.range-btn.on{background:linear-gradient(135deg,#8a6a20,var(--gold));color:#000;border-color:var(--gold)}
+.chart-section{margin-bottom:12px}
+.chart-section-title{font-size:11px;color:var(--gold);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+.pie-row{display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:12px;color:var(--text2)}
+.ldot{width:9px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0}
+
+/* ── sec title ── */
+.sec-title{font-size:11px;color:var(--gold);font-weight:600;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
+.empty{text-align:center;color:var(--text3);padding:1.5rem;font-size:13px;line-height:1.8}
+.inv-type-row{display:flex;gap:6px;margin-bottom:9px}
+.inv-tbtn{flex:1;padding:7px;font-size:12px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);cursor:pointer;color:var(--text2);text-align:center;font-weight:500}
+.inv-tbtn.on-stock{background:rgba(167,139,250,.2);color:var(--purple);border-color:var(--purple)}
+.inv-tbtn.on-crypto{background:rgba(34,211,238,.2);color:var(--cyan);border-color:var(--cyan)}
+
+/* ── lang menu ── */
+.lang-menu{position:absolute;top:44px;right:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:4px;z-index:200;min-width:130px;box-shadow:0 8px 24px rgba(0,0,0,.6)}
 .lang-item{padding:8px 12px;font-size:13px;cursor:pointer;color:var(--text2);border-radius:7px}
 .lang-item:hover{background:var(--surface3);color:var(--text)}
-.lang-item.on{color:var(--blue)}
-/* overlay */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(8px)}
-.login-card{background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:2rem 1.5rem;max-width:300px;width:90%;text-align:center}
-.login-card h2{font-size:21px;font-weight:700;margin-bottom:.4rem;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lang-item.on{color:var(--gold2)}
+
+/* ── login overlay ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(12px)}
+.login-card{background:var(--surface2);border:1px solid rgba(201,168,76,.3);border-radius:22px;padding:2rem 1.5rem;max-width:300px;width:90%;text-align:center;box-shadow:0 0 40px rgba(201,168,76,.1)}
+.login-card h2{font-size:20px;font-weight:700;margin-bottom:.3rem;background:linear-gradient(135deg,var(--gold),var(--gold3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.login-card .icon-wrap{width:80px;height:80px;margin:0 auto 1rem;border-radius:18px;overflow:hidden;border:2px solid rgba(201,168,76,.3)}
+.login-card .icon-wrap img{width:100%;height:100%;object-fit:cover}
 .login-card p{font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.7}
-.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:var(--surface3);border:1px solid var(--border2);border-radius:10px;font-size:14px;cursor:pointer;font-weight:500;color:var(--text)}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:var(--surface3);border:1px solid rgba(201,168,76,.3);border-radius:10px;font-size:14px;cursor:pointer;font-weight:500;color:var(--text)}
 .btn-google svg{width:18px;height:18px;flex-shrink:0}
+
+/* ── gold divider ── */
+.gold-line{height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin:4px 0 10px}
 </style>
 </head>
 <body>
+
+<!-- Login overlay — shown only when not logged in -->
 <div id="login-overlay" class="overlay">
   <div class="login-card">
-    <h2>⚡ Finance Keeper</h2>
+    <div class="icon-wrap"><img src="icon.png" alt="Finance Keeper"></div>
+    <h2>Finance Keeper</h2>
     <p id="login-desc">登入 Google 帳號以同步資料<br>資料存在你的 Google Sheets<br>手機電腦共用同一份</p>
     <button class="btn-google" onclick="signIn()">
       <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
@@ -172,27 +221,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
       <div id="cc-alerts-add"></div>
       <div class="sum-grid">
         <div class="sum-card c-bal"><div class="sum-label"><span data-t="bal">本月結餘</span></div><div class="sum-val" id="s-bal">NT$0</div></div>
-        <div class="sum-card c-bank">
-          <div class="sum-label"><span data-t="bankTotal">銀行總額</span><button class="eye-btn" onclick="toggleHide('bank')" id="eye-bank">👁</button></div>
-          <div class="sum-val blu" id="s-bank">NT$0</div>
-        </div>
+        <div class="sum-card c-bank"><div class="sum-label"><span data-t="bankTotal">銀行總額</span><button class="eye-btn" onclick="toggleHide('bank')" id="eye-bank">👁</button></div><div class="sum-val gld" id="s-bank">NT$0</div></div>
         <div class="sum-card c-inc"><div class="sum-label"><span data-t="monthInc">本月收入</span></div><div class="sum-val pos" id="s-inc">NT$0</div></div>
         <div class="sum-card c-exp"><div class="sum-label"><span data-t="monthExp">本月支出</span></div><div class="sum-val neg" id="s-exp">NT$0</div></div>
         <div class="sum-card c-cc"><div class="sum-label"><span data-t="ccMonth">信用卡本月</span></div><div class="sum-val amb" id="s-cc">NT$0</div></div>
-        <div class="sum-card c-inv">
-          <div class="sum-label"><span data-t="invTotal">投資總市值</span><button class="eye-btn" onclick="toggleHide('inv')" id="eye-inv">👁</button></div>
-          <div class="sum-val pur" id="s-inv">NT$0</div>
-        </div>
+        <div class="sum-card c-inv"><div class="sum-label"><span data-t="invTotal">投資總市值</span><button class="eye-btn" onclick="toggleHide('inv')" id="eye-inv">👁</button></div><div class="sum-val pur" id="s-inv">NT$0</div></div>
       </div>
 
-      <!-- 消費分析 -->
-      <div class="analysis-card" id="analysis-block">
-        <div class="analysis-title"><div class="dot" style="background:var(--cyan)"></div><span data-t="analysis">消費分析</span></div>
+      <div class="analysis-card">
+        <div class="analysis-title">📊 <span data-t="analysis">消費分析</span></div>
         <div class="range-tabs">
-          <button class="rtab on" onclick="setAnalysisRange(7,this)"><span data-t="d7">7天</span></button>
-          <button class="rtab" onclick="setAnalysisRange(14,this)"><span data-t="d14">14天</span></button>
-          <button class="rtab" onclick="setAnalysisRange(21,this)"><span data-t="d21">21天</span></button>
-          <button class="rtab" onclick="setAnalysisRange(0,this)"><span data-t="thisMonth">本月</span></button>
+          <button class="rtab on" onclick="setAR(7,this)" data-t="d7">7天</button>
+          <button class="rtab" onclick="setAR(14,this)" data-t="d14">14天</button>
+          <button class="rtab" onclick="setAR(21,this)" data-t="d21">21天</button>
+          <button class="rtab" onclick="setAR(0,this)" data-t="thisMonth">本月</button>
         </div>
         <div id="analysis-content"></div>
       </div>
@@ -204,7 +246,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
           <button class="tbtn" id="tbtn-inv" onclick="setType('invest')" data-t="invest">投資</button>
           <button class="tbtn" id="tbtn-xfr" onclick="setType('transfer')" data-t="transfer">轉帳</button>
         </div>
-
         <div id="form-tx">
           <div class="frow">
             <div class="fg"><label data-t="amount">金額</label><input type="number" id="f-amt" placeholder="0" inputmode="decimal" oninput="clearE('ferr')"></div>
@@ -216,16 +257,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
           </div>
           <div class="fg"><label data-t="note">備註</label><input type="text" id="f-note"></div>
           <div id="optional-wrap" style="display:none">
-            <div class="check-row" onclick="toggleOpt()">
-              <div class="chk" id="opt-box"></div>
-              <span class="chk-lbl" id="opt-lbl" data-t="nonEssential">非必要支出</span>
-            </div>
+            <div class="check-row" onclick="toggleOpt()"><div class="chk" id="opt-box"></div><span class="chk-lbl" id="opt-lbl" data-t="nonEssential">非必要支出</span></div>
           </div>
           <div id="install-wrap" style="display:none">
-            <div class="check-row" onclick="toggleInst()">
-              <div class="chk" id="inst-box"></div>
-              <span class="chk-lbl" id="inst-lbl" data-t="installment">分期付款</span>
-            </div>
+            <div class="check-row" onclick="toggleInst()"><div class="chk" id="inst-box"></div><span class="chk-lbl" id="inst-lbl" data-t="installment">分期付款</span></div>
             <div id="inst-fields" style="display:none">
               <div class="inst-box">
                 <div class="inst-box-title" data-t="installSettings">⚡ 分期設定</div>
@@ -245,7 +280,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
             </div>
           </div>
         </div>
-
         <div id="form-invest" style="display:none">
           <div class="inv-type-row">
             <button class="inv-tbtn on-stock" id="inv-tbtn-stock" onclick="setInvType('stock')" data-t="stock">📈 股票</button>
@@ -265,7 +299,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
           </div>
           <div class="fg"><label data-t="debitAcct">扣款帳戶</label><select id="fi-source"></select></div>
         </div>
-
         <div id="form-transfer" style="display:none">
           <div class="frow">
             <div class="fg"><label data-t="amount">金額</label><input type="number" id="ft-amt" inputmode="decimal" oninput="clearE('ferr')"></div>
@@ -277,7 +310,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
           </div>
           <div class="fg"><label data-t="note">備註</label><input type="text" id="ft-note"></div>
         </div>
-
         <button class="btn-primary" id="submit-btn" onclick="addEntry()">＋ <span data-t="add">新增</span></button>
         <div class="ferr" id="ferr"></div>
       </div>
@@ -291,11 +323,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
     <!-- 圖表 -->
     <div class="panel" id="panel-chart">
       <div class="chart-range-row">
-        <button class="range-btn" onclick="setChartRange('month',this)" data-t="thisMonth">本月</button>
-        <button class="range-btn" onclick="setChartRange('3m',this)">3M</button>
-        <button class="range-btn" onclick="setChartRange('6m',this)">6M</button>
-        <button class="range-btn" onclick="setChartRange('1y',this)">1Y</button>
-        <button class="range-btn" onclick="setChartRange('custom',this)" data-t="custom">自訂</button>
+        <button class="range-btn on" onclick="setCR('month',this)" data-t="thisMonth">本月</button>
+        <button class="range-btn" onclick="setCR('3m',this)">3M</button>
+        <button class="range-btn" onclick="setCR('6m',this)">6M</button>
+        <button class="range-btn" onclick="setCR('1y',this)">1Y</button>
+        <button class="range-btn" onclick="setCR('custom',this)" data-t="custom">自訂</button>
       </div>
       <div id="chart-custom-range" style="display:none;margin-bottom:10px">
         <div class="frow">
@@ -316,17 +348,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
       </div>
       <div class="chart-section">
         <div class="chart-section-title" data-t="expByCategory">支出分類</div>
-        <div class="card" style="padding:11px">
-          <div id="exp-pie-legend" style="margin-bottom:8px"></div>
-          <div style="position:relative;width:100%;height:190px"><canvas id="chart-pie-exp" role="img"></canvas></div>
-        </div>
+        <div class="card" style="padding:11px"><div id="exp-pie-legend" style="margin-bottom:8px"></div><div style="position:relative;width:100%;height:190px"><canvas id="chart-pie-exp" role="img"></canvas></div></div>
       </div>
       <div class="chart-section">
         <div class="chart-section-title" data-t="incByCategory">收入分類</div>
-        <div class="card" style="padding:11px">
-          <div id="inc-pie-legend" style="margin-bottom:8px"></div>
-          <div style="position:relative;width:100%;height:190px"><canvas id="chart-pie-inc" role="img"></canvas></div>
-        </div>
+        <div class="card" style="padding:11px"><div id="inc-pie-legend" style="margin-bottom:8px"></div><div style="position:relative;width:100%;height:190px"><canvas id="chart-pie-inc" role="img"></canvas></div></div>
       </div>
     </div>
 
@@ -347,25 +373,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
           <div class="fg"><label data-t="name">名稱</label><input type="text" id="a-name" oninput="clearE('aerr')"></div>
           <div class="fg"><label id="a-bal-lbl" data-t="balance">餘額</label><input type="number" id="a-bal" inputmode="decimal"></div>
         </div>
-        <div class="fg" id="cc-due-wrap" style="display:none">
-          <label data-t="dueDay">自動扣款日（幾號）</label>
-          <input type="number" id="a-due" inputmode="numeric" min="1" max="31">
+        <div id="cc-extra" style="display:none">
+          <div class="fg"><label data-t="dueDay">自動扣款日（幾號）</label><input type="number" id="a-due" inputmode="numeric" min="1" max="31"></div>
+          <div class="fg"><label data-t="debitAcct">自動扣款銀行帳戶</label><select id="a-debit-bank"></select></div>
         </div>
         <button class="btn-primary" onclick="addAcct()">＋ <span data-t="add">新增</span></button>
         <div class="ferr" id="aerr"></div>
       </div>
       <div class="card">
-        <div class="card-title"><div class="dot" style="background:var(--amber)"></div><span data-t="transfer">轉帳</span></div>
-        <div class="frow">
-          <div class="fg"><label data-t="from">從（轉出）</label><select id="xfr-from"></select></div>
-          <div class="fg"><label data-t="to">到（轉入）</label><select id="xfr-to"></select></div>
-        </div>
-        <div class="frow">
-          <div class="fg"><label data-t="amount">金額</label><input type="number" id="xfr-amt" inputmode="decimal" oninput="clearE('xfrerr')"></div>
-          <div class="fg"><label data-t="date">日期</label><input type="date" id="xfr-date"></div>
-        </div>
+        <div class="card-title"><div class="dot" style="background:var(--gold2)"></div><span data-t="transfer">帳戶轉帳</span></div>
+        <div class="frow"><div class="fg"><label data-t="from">從（轉出）</label><select id="xfr-from"></select></div><div class="fg"><label data-t="to">到（轉入）</label><select id="xfr-to"></select></div></div>
+        <div class="frow"><div class="fg"><label data-t="amount">金額</label><input type="number" id="xfr-amt" inputmode="decimal" oninput="clearE('xfrerr')"></div><div class="fg"><label data-t="date">日期</label><input type="date" id="xfr-date"></div></div>
         <div class="fg"><label data-t="note">備註</label><input type="text" id="xfr-note"></div>
-        <button class="btn-primary" style="background:linear-gradient(135deg,#b45309,var(--amber))" onclick="doTransfer()"><span data-t="execTransfer">執行轉帳</span></button>
+        <button class="btn-primary" onclick="doTransfer()"><span data-t="execTransfer">執行轉帳</span></button>
         <div class="ferr" id="xfrerr"></div>
       </div>
     </div>
@@ -383,10 +403,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
     <div class="panel" id="panel-setting">
       <div class="card">
         <div class="card-title"><div class="dot"></div><span data-t="syncTitle">Google Sheets 同步</span></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
-          <span class="sync-dot" id="sync-dot2"></span>
-          <span style="font-size:13px;color:var(--text2)" id="sync-label2"></span>
-        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span class="sync-dot" id="sync-dot2"></span><span style="font-size:13px;color:var(--text2)" id="sync-label2"></span></div>
         <div id="login-btns"><button class="btn-primary" onclick="signIn()"><span data-t="loginGoogle">登入 Google 帳號</span></button></div>
         <div id="logout-btns" style="display:none;flex-direction:column;gap:7px">
           <button class="btn-primary" onclick="syncAll()"><span data-t="syncNow">立即同步</span></button>
@@ -394,26 +411,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
         </div>
       </div>
       <div class="card">
-        <div class="card-title"><div class="dot" style="background:var(--green)"></div><span data-t="catManage">分類管理</span></div>
+        <div class="card-title"><div class="dot"></div><span data-t="catManage">分類管理</span></div>
         <div class="sec-title" data-t="expCats">支出分類</div>
         <div id="exp-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px"></div>
         <div class="sec-title" data-t="incCats">收入分類</div>
         <div id="inc-cats" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px"></div>
-        <p style="font-size:11px;color:var(--text3);margin-bottom:11px" data-t="longPressDelete">點 × 可刪除自訂分類</p>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:11px" data-t="longPressDelete">點 × 可刪除分類（包含預設分類）</p>
         <div class="frow">
           <div class="fg"><label data-t="catName">分類名稱</label><input type="text" id="nc-name" oninput="clearE('ncerr')"></div>
-          <div class="fg"><label data-t="type">類型</label>
-            <select id="nc-type">
-              <option value="expense" data-t="expense">支出</option>
-              <option value="income" data-t="income">收入</option>
-            </select>
-          </div>
+          <div class="fg"><label data-t="type">類型</label><select id="nc-type"><option value="expense" data-t="expense">支出</option><option value="income" data-t="income">收入</option></select></div>
         </div>
         <button class="btn-primary" onclick="addCat()">＋ <span data-t="add">新增</span></button>
         <div class="ferr" id="ncerr"></div>
       </div>
       <div class="card">
-        <div class="card-title"><div class="dot" style="background:var(--red)"></div><span data-t="other">其他</span></div>
+        <div class="card-title"><div class="dot"></div><span data-t="other">其他</span></div>
         <button class="btn-sm btn-del" onclick="clearLocal()" data-t="clearCache">清除本機快取</button>
       </div>
     </div>
@@ -430,185 +442,96 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 </div>
 
 <script>
-// ── i18n ────────────────────────────────────────────────────────────────────
-const LANGS = {
-  'zh-TW': {
-    bal:'本月結餘',bankTotal:'銀行總額',monthInc:'本月收入',monthExp:'本月支出',
-    ccMonth:'信用卡本月',invTotal:'投資總市值',analysis:'消費分析',
-    d7:'7天',d14:'14天',d21:'21天',thisMonth:'本月',
-    expense:'支出',income:'收入',invest:'投資',transfer:'轉帳',
-    amount:'金額',date:'日期',category:'分類',account:'帳戶',note:'備註',
-    nonEssential:'非必要支出',installment:'分期付款',
-    installSettings:'⚡ 分期設定',periods:'總期數',interval:'每期間隔',unit:'間隔單位',
-    month:'個月',week:'週',day:'天',
-    stockName:'股票名稱',ticker:'代號',buyPrice:'買入價',shares:'股數',
-    curPrice:'目前市價',debitAcct:'扣款帳戶',crypto:'🪙 加密貨幣',stock:'📈 股票',
-    from:'從（轉出）',to:'到（轉入）',add:'新增',
-    noRecord:'本月還沒有記錄',
-    dailyFlow:'每日收支',expByCategory:'支出分類',incByCategory:'收入分類',
-    custom:'自訂',startDate:'開始日期',endDate:'結束日期',apply:'套用',
-    bankAccounts:'銀行帳戶',creditCards:'信用卡',addAccount:'新增帳戶',
-    bank:'銀行',creditCard:'信用卡',balance:'餘額',dueDay:'自動扣款日（幾號）',
-    execTransfer:'執行轉帳',
-    noInvest:'還沒有投資記錄',totalPnl:'總損益',
-    syncTitle:'Google Sheets 同步',loginGoogle:'登入 Google 帳號',
-    syncNow:'立即同步',logout:'登出',
-    catManage:'分類管理',expCats:'支出分類',incCats:'收入分類',
-    longPressDelete:'點 × 可刪除自訂分類',catName:'分類名稱',type:'類型',
-    other:'其他',clearCache:'清除本機快取',
-    settings:'設定',accounts:'帳戶',detail:'明細',chart:'圖表',name:'名稱',
-    topExp:'消費最高分類',topTx:'最高單筆',vsLastMonth:'vs 上月',
-    notLoggedIn:'未登入',synced:'已同步',syncFail:'同步失敗',loading:'載入中...',
-    loginFail:'登入失敗',initFail:'初始化失敗',
-    loginDesc:'登入 Google 帳號以同步資料\n資料存在你的 Google Sheets\n手機電腦共用同一份',
-    loginNote:'首次需授權存取 Google Sheets',
-    loginBtnText:'使用 Google 帳號登入',
-    totalExp:'區間總支出',instPreview:'共 {n} 期，每 {i} {u}一期，每期 {a}，首期 {d1}、{d2}…',
-  },
-  'zh-CN': {
-    bal:'本月结余',bankTotal:'银行总额',monthInc:'本月收入',monthExp:'本月支出',
-    ccMonth:'信用卡本月',invTotal:'投资总市值',analysis:'消费分析',
-    d7:'7天',d14:'14天',d21:'21天',thisMonth:'本月',
-    expense:'支出',income:'收入',invest:'投资',transfer:'转账',
-    amount:'金额',date:'日期',category:'分类',account:'账户',note:'备注',
-    nonEssential:'非必要支出',installment:'分期付款',
-    installSettings:'⚡ 分期设置',periods:'总期数',interval:'每期间隔',unit:'间隔单位',
-    month:'个月',week:'周',day:'天',
-    stockName:'股票名称',ticker:'代号',buyPrice:'买入价',shares:'股数',
-    curPrice:'当前市价',debitAcct:'扣款账户',crypto:'🪙 加密货币',stock:'📈 股票',
-    from:'从（转出）',to:'到（转入）',add:'新增',
-    noRecord:'本月暂无记录',
-    dailyFlow:'每日收支',expByCategory:'支出分类',incByCategory:'收入分类',
-    custom:'自定义',startDate:'开始日期',endDate:'结束日期',apply:'应用',
-    bankAccounts:'银行账户',creditCards:'信用卡',addAccount:'新增账户',
-    bank:'银行',creditCard:'信用卡',balance:'余额',dueDay:'自动扣款日（几号）',
-    execTransfer:'执行转账',
-    noInvest:'暂无投资记录',totalPnl:'总损益',
-    syncTitle:'Google Sheets 同步',loginGoogle:'使用 Google 账号登录',
-    syncNow:'立即同步',logout:'退出',
-    catManage:'分类管理',expCats:'支出分类',incCats:'收入分类',
-    longPressDelete:'点 × 可删除自定义分类',catName:'分类名称',type:'类型',
-    other:'其他',clearCache:'清除本地缓存',
-    settings:'设置',accounts:'账户',detail:'明细',chart:'图表',name:'名称',
-    topExp:'最高消费分类',topTx:'最高单笔',vsLastMonth:'vs 上月',
-    notLoggedIn:'未登录',synced:'已同步',syncFail:'同步失败',loading:'加载中...',
-    loginFail:'登录失败',initFail:'初始化失败',
-    loginDesc:'登录 Google 账号以同步数据\n数据存储在您的 Google Sheets\n手机电脑共享同一份',
-    loginNote:'首次需授权访问 Google Sheets',
-    loginBtnText:'使用 Google 账号登录',
-    totalExp:'区间总支出',instPreview:'共 {n} 期，每 {i} {u}一期，每期 {a}，首期 {d1}、{d2}…',
-  },
-  'en': {
-    bal:'Balance',bankTotal:'Bank Total',monthInc:'Income',monthExp:'Expenses',
-    ccMonth:'Credit Card',invTotal:'Portfolio Value',analysis:'Spending Analysis',
-    d7:'7 Days',d14:'14 Days',d21:'21 Days',thisMonth:'This Month',
-    expense:'Expense',income:'Income',invest:'Invest',transfer:'Transfer',
-    amount:'Amount',date:'Date',category:'Category',account:'Account',note:'Note',
-    nonEssential:'Non-essential',installment:'Installment',
-    installSettings:'⚡ Installment Setup',periods:'Periods',interval:'Interval',unit:'Unit',
-    month:'Month(s)',week:'Week(s)',day:'Day(s)',
-    stockName:'Stock Name',ticker:'Ticker',buyPrice:'Buy Price',shares:'Shares',
-    curPrice:'Current Price',debitAcct:'Debit Account',crypto:'🪙 Crypto',stock:'📈 Stock',
-    from:'From',to:'To',add:'Add',
-    noRecord:'No records this month',
-    dailyFlow:'Daily Flow',expByCategory:'Expenses by Category',incByCategory:'Income by Category',
-    custom:'Custom',startDate:'Start Date',endDate:'End Date',apply:'Apply',
-    bankAccounts:'Bank Accounts',creditCards:'Credit Cards',addAccount:'Add Account',
-    bank:'Bank',creditCard:'Credit Card',balance:'Balance',dueDay:'Auto-pay Day',
-    execTransfer:'Transfer',
-    noInvest:'No investments yet',totalPnl:'Total P&L',
-    syncTitle:'Google Sheets Sync',loginGoogle:'Sign in with Google',
-    syncNow:'Sync Now',logout:'Sign Out',
-    catManage:'Categories',expCats:'Expense Categories',incCats:'Income Categories',
-    longPressDelete:'Tap × to delete custom categories',catName:'Category Name',type:'Type',
-    other:'Other',clearCache:'Clear Cache',
-    settings:'Settings',accounts:'Accounts',detail:'Records',chart:'Charts',name:'Name',
-    topExp:'Top Category',topTx:'Highest Transaction',vsLastMonth:'vs Last Month',
-    notLoggedIn:'Not signed in',synced:'Synced',syncFail:'Sync failed',loading:'Loading...',
-    loginFail:'Login failed',initFail:'Init failed',
-    loginDesc:'Sign in with Google to sync your data\nStored in your own Google Sheets\nAccess from any device',
-    loginNote:'Google Sheets access required on first login',
-    loginBtnText:'Sign in with Google',
-    totalExp:'Total Expenses',instPreview:'{n} payments, every {i} {u}, {a} each, first on {d1}, {d2}…',
-  }
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const LANGS={
+  'zh-TW':{bal:'本月結餘',bankTotal:'銀行總額',monthInc:'本月收入',monthExp:'本月支出',ccMonth:'信用卡本月',invTotal:'投資總市值',analysis:'消費分析',d7:'7天',d14:'14天',d21:'21天',thisMonth:'本月',expense:'支出',income:'收入',invest:'投資',transfer:'轉帳',amount:'金額',date:'日期',category:'分類',account:'帳戶',note:'備註',nonEssential:'非必要支出',installment:'分期付款',installSettings:'⚡ 分期設定',periods:'總期數',interval:'每期間隔',unit:'間隔單位',month:'個月',week:'週',day:'天',stockName:'股票名稱',ticker:'代號',buyPrice:'買入價',shares:'股數',curPrice:'目前市價',debitAcct:'扣款帳戶',crypto:'🪙 加密貨幣',stock:'📈 股票',from:'從（轉出）',to:'到（轉入）',add:'新增',noRecord:'本月還沒有記錄',dailyFlow:'每日收支',expByCategory:'支出分類',incByCategory:'收入分類',custom:'自訂',startDate:'開始日期',endDate:'結束日期',apply:'套用',bankAccounts:'銀行帳戶',creditCards:'信用卡',addAccount:'新增帳戶',bank:'銀行',creditCard:'信用卡',balance:'餘額',dueDay:'自動扣款日（幾號）',execTransfer:'執行轉帳',noInvest:'還沒有投資記錄',totalPnl:'總損益',syncTitle:'Google Sheets 同步',loginGoogle:'登入 Google 帳號',syncNow:'立即同步',logout:'登出',catManage:'分類管理',expCats:'支出分類',incCats:'收入分類',longPressDelete:'點 × 可刪除分類（包含預設分類）',catName:'分類名稱',type:'類型',other:'其他',clearCache:'清除本機快取',settings:'設定',accounts:'帳戶',detail:'明細',chart:'圖表',name:'名稱',topExp:'最高消費分類',topTx:'最高單筆',vsLastMonth:'vs 上月',notLoggedIn:'未登入',synced:'已同步',syncFail:'同步失敗',loading:'載入中...',loginFail:'登入失敗',initFail:'初始化失敗',loginDesc:'登入 Google 帳號以同步資料\n資料存在你的 Google Sheets\n手機電腦共用同一份',loginNote:'首次需授權存取 Google Sheets',loginBtnText:'使用 Google 帳號登入',totalExp:'區間總支出',instPrev:'共{n}期，每{i}{u}，每期{a}，首期{d}',autoPayBank:'自動扣款銀行帳戶',dueDay2:'扣款日'},
+  'zh-CN':{bal:'本月结余',bankTotal:'银行总额',monthInc:'本月收入',monthExp:'本月支出',ccMonth:'信用卡本月',invTotal:'投资总市值',analysis:'消费分析',d7:'7天',d14:'14天',d21:'21天',thisMonth:'本月',expense:'支出',income:'收入',invest:'投资',transfer:'转账',amount:'金额',date:'日期',category:'分类',account:'账户',note:'备注',nonEssential:'非必要支出',installment:'分期付款',installSettings:'⚡ 分期设置',periods:'总期数',interval:'每期间隔',unit:'间隔单位',month:'个月',week:'周',day:'天',stockName:'股票名称',ticker:'代号',buyPrice:'买入价',shares:'股数',curPrice:'当前市价',debitAcct:'扣款账户',crypto:'🪙 加密货币',stock:'📈 股票',from:'从（转出）',to:'到（转入）',add:'新增',noRecord:'本月暂无记录',dailyFlow:'每日收支',expByCategory:'支出分类',incByCategory:'收入分类',custom:'自定义',startDate:'开始日期',endDate:'结束日期',apply:'应用',bankAccounts:'银行账户',creditCards:'信用卡',addAccount:'新增账户',bank:'银行',creditCard:'信用卡',balance:'余额',dueDay:'自动扣款日（几号）',execTransfer:'执行转账',noInvest:'暂无投资记录',totalPnl:'总损益',syncTitle:'Google Sheets 同步',loginGoogle:'登录 Google 账号',syncNow:'立即同步',logout:'退出',catManage:'分类管理',expCats:'支出分类',incCats:'收入分类',longPressDelete:'点 × 可删除分类',catName:'分类名称',type:'类型',other:'其他',clearCache:'清除本地缓存',settings:'设置',accounts:'账户',detail:'明细',chart:'图表',name:'名称',topExp:'最高消费分类',topTx:'最高单笔',vsLastMonth:'vs 上月',notLoggedIn:'未登录',synced:'已同步',syncFail:'同步失败',loading:'加载中...',loginFail:'登录失败',initFail:'初始化失败',loginDesc:'登录 Google 账号以同步数据\n数据存储在您的 Google Sheets',loginNote:'首次需授权访问 Google Sheets',loginBtnText:'使用 Google 账号登录',totalExp:'区间总支出',instPrev:'共{n}期，每{i}{u}，每期{a}，首期{d}',autoPayBank:'自动扣款银行账户',dueDay2:'扣款日'},
+  'en':{bal:'Balance',bankTotal:'Bank Total',monthInc:'Income',monthExp:'Expenses',ccMonth:'Credit Card',invTotal:'Portfolio',analysis:'Spending Analysis',d7:'7 Days',d14:'14 Days',d21:'21 Days',thisMonth:'This Month',expense:'Expense',income:'Income',invest:'Invest',transfer:'Transfer',amount:'Amount',date:'Date',category:'Category',account:'Account',note:'Note',nonEssential:'Non-essential',installment:'Installment',installSettings:'⚡ Installment Setup',periods:'Periods',interval:'Interval',unit:'Unit',month:'Month(s)',week:'Week(s)',day:'Day(s)',stockName:'Stock Name',ticker:'Ticker',buyPrice:'Buy Price',shares:'Shares',curPrice:'Current Price',debitAcct:'Debit Account',crypto:'🪙 Crypto',stock:'📈 Stock',from:'From',to:'To',add:'Add',noRecord:'No records this month',dailyFlow:'Daily Flow',expByCategory:'Expense Categories',incByCategory:'Income Categories',custom:'Custom',startDate:'Start Date',endDate:'End Date',apply:'Apply',bankAccounts:'Bank Accounts',creditCards:'Credit Cards',addAccount:'Add Account',bank:'Bank',creditCard:'Credit Card',balance:'Balance',dueDay:'Auto-pay Day',execTransfer:'Transfer',noInvest:'No investments yet',totalPnl:'Total P&L',syncTitle:'Google Sheets Sync',loginGoogle:'Sign in with Google',syncNow:'Sync Now',logout:'Sign Out',catManage:'Categories',expCats:'Expense Categories',incCats:'Income Categories',longPressDelete:'Tap × to delete any category',catName:'Category Name',type:'Type',other:'Other',clearCache:'Clear Cache',settings:'Settings',accounts:'Accounts',detail:'Records',chart:'Charts',name:'Name',topExp:'Top Category',topTx:'Highest Transaction',vsLastMonth:'vs Last Month',notLoggedIn:'Not signed in',synced:'Synced',syncFail:'Sync failed',loading:'Loading...',loginFail:'Login failed',initFail:'Init failed',loginDesc:'Sign in with Google to sync\nStored in your Google Sheets\nAccess from any device',loginNote:'Google Sheets access required',loginBtnText:'Sign in with Google',totalExp:'Total Expenses',instPrev:'{n} payments, every {i} {u}, {a} each, first on {d}',autoPayBank:'Auto-pay Bank Account',dueDay2:'Pay Day'}
 };
-
 let lang='zh-TW';
-function t(k){return LANGS[lang][k]||k;}
-function setLang(l){
-  lang=l;
-  localStorage.setItem('fk_lang',l);
-  ['zh-TW','zh-CN','en'].forEach(x=>document.getElementById('lang-'+x)?.classList.remove('on'));
-  document.getElementById('lang-'+l)?.classList.add('on');
-  document.getElementById('lang-menu').style.display='none';
-  applyLang();render();
-}
-function applyLang(){
-  document.querySelectorAll('[data-t]').forEach(el=>{
-    const k=el.getAttribute('data-t');
-    if(k&&LANGS[lang][k]) el.textContent=LANGS[lang][k];
-  });
-  document.getElementById('login-desc').innerHTML=t('loginDesc').replace(/\n/g,'<br>');
-  document.getElementById('login-btn-text').textContent=t('loginBtnText');
-  document.getElementById('login-note').textContent=t('loginNote');
-  setSS(lastSyncStatus,lastSyncLabel);
-}
+function T(k){return LANGS[lang][k]||k;}
+function setLang(l){lang=l;localStorage.setItem('fk_lang',l);['zh-TW','zh-CN','en'].forEach(x=>document.getElementById('lang-'+x)?.classList.remove('on'));document.getElementById('lang-'+l)?.classList.add('on');document.getElementById('lang-menu').style.display='none';applyLang();render();}
+function applyLang(){document.querySelectorAll('[data-t]').forEach(el=>{const k=el.getAttribute('data-t');if(k&&LANGS[lang][k])el.textContent=LANGS[lang][k];});document.getElementById('login-desc').innerHTML=T('loginDesc').replace(/\n/g,'<br>');document.getElementById('login-btn-text').textContent=T('loginBtnText');document.getElementById('login-note').textContent=T('loginNote');}
 function toggleLangMenu(){const m=document.getElementById('lang-menu');m.style.display=m.style.display==='none'?'block':'none';}
-document.addEventListener('click',e=>{if(!e.target.closest('.lang-menu')&&!e.target.closest('.icon-btn'))document.getElementById('lang-menu').style.display='none';});
+document.addEventListener('click',e=>{if(!e.target.closest('.lang-menu')&&!e.target.closest('.icon-btn[onclick*=Lang]'))document.getElementById('lang-menu').style.display='none';});
 
-// ── core ─────────────────────────────────────────────────────────────────────
+// ── state ─────────────────────────────────────────────────────────────────────
 const CLIENT_ID='909890286177-sfld5lrhrq2kibq324fkcpv6laq88v61.apps.googleusercontent.com';
 const SHEET_ID='17cmUl6R7vtKmMP3fVm6bQPK8uLB7sj5UAX_ZyJo2ftY';
-const CACHE_KEY='fk_v4';
-const PIE_COLORS=['#4d9fff','#ff4d6d','#00d68f','#fbbf24','#a78bfa','#22d3ee','#fb923c','#f472b6'];
-const ICONS={餐飲:'🍜',交通:'🚌',購物:'🛍️',娛樂:'🎮',居住:'🏠',醫療:'💊',薪資:'💼',獎金:'🎁',副業:'💡',投資:'📈',其他:'📋',轉帳:'🔄',健身:'🏋️',旅遊:'✈️',教育:'📚',Bitcoin:'₿',Ethereum:'⟠',加密貨幣:'🪙',Food:'🍜',Transport:'🚌',Shopping:'🛍️',Entertainment:'🎮',Housing:'🏠',Medical:'💊',Salary:'💼',Bonus:'🎁',Freelance:'💡',Other:'📋'};
+const CACHE_KEY='fk_v5';
+const PIE_COLORS=['#c9a84c','#ff4d6d','#00d68f','#4d9fff','#a78bfa','#22d3ee','#fb923c','#f472b6'];
+const ICONS={餐飲:'🍜',交通:'🚌',購物:'🛍️',娛樂:'🎮',居住:'🏠',醫療:'💊',薪資:'💼',獎金:'🎁',副業:'💡',投資:'📈',其他:'📋',轉帳:'🔄',健身:'🏋️',旅遊:'✈️',教育:'📚',Bitcoin:'₿',Ethereum:'⟠',加密貨幣:'🪙'};
 const MN_ZH=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 const MN_EN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmt=n=>'NT$'+Math.round(Math.abs(n)).toLocaleString();
 const today=()=>new Date().toISOString().slice(0,10);
 const iconFor=c=>ICONS[c]||'📌';
-function monthLabel(y,m){return lang==='en'?`${MN_EN[m]} ${y}`:`${y}年${MN_ZH[m]}`;}
+function mlabel(y,m){return lang==='en'?`${MN_EN[m]} ${y}`:`${y}年${MN_ZH[m]}`;}
 
 let state={txs:[],accounts:[],investments:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};
 let curYear=new Date().getFullYear(),curMonth=new Date().getMonth();
 let txType='expense',acctType='bank',invType='stock';
-let isOpt=false,isInst=false;
-let hideBank=false,hideInv=false;
-let analysisRange=7;
-let chartRange='month',chartStart='',chartEnd='';
+let isOpt=false,isInst=false,hideBank=false,hideInv=false,analysisRange=7,chartRange='month',chartStart='',chartEnd='';
 let barChart=null,pieExpChart=null,pieIncChart=null;
-let accessToken=null,syncing=false;
-let lastSyncStatus='',lastSyncLabel='';
+let accessToken=null,syncing=false,tokenClient=null,lastSS='',lastSL='';
 
 function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,lang}));}catch(e){}}
 function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;lang=p.lang||lang;}}catch(e){}}
-function clearLocal(){if(confirm(t('clearCache')+'?')){localStorage.removeItem(CACHE_KEY);location.reload();}}
+function clearLocal(){if(confirm(T('clearCache')+'?')){localStorage.removeItem(CACHE_KEY);localStorage.removeItem('fk_lang');location.reload();}}
 
-function signIn(){
-  const client=google.accounts.oauth2.initTokenClient({
-    client_id:CLIENT_ID,scope:'https://www.googleapis.com/auth/spreadsheets',
+// ── Google OAuth with auto-refresh ────────────────────────────────────────────
+function initGoogleAuth(){
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID,
+    scope:'https://www.googleapis.com/auth/spreadsheets',
+    prompt:'',  // skip consent screen if already granted
     callback:async(resp)=>{
-      if(resp.error){setSS('err',t('loginFail'));return;}
+      if(resp.error){
+        // If silent refresh failed, show login screen
+        if(resp.error==='interaction_required'||resp.error==='access_denied'){showLoginScreen();return;}
+        setSS('err',T('loginFail'));return;
+      }
       accessToken=resp.access_token;
-      document.getElementById('login-overlay').style.display='none';
-      document.getElementById('main-app').style.display='flex';
-      setSS('loading',t('loading'));
-      await ensureSheets();await loadFromSheets();render();
-      document.getElementById('login-btns').style.display='none';
-      document.getElementById('logout-btns').style.display='flex';
+      // Schedule refresh 5min before expiry (token lasts ~1hr)
+      const expiresIn=(resp.expires_in||3600)-300;
+      setTimeout(()=>silentRefresh(),expiresIn*1000);
+      showMainApp();
     }
   });
-  client.requestAccessToken();
-}
-function signOut(){
-  if(accessToken)google.accounts.oauth2.revoke(accessToken);
-  accessToken=null;setSS('',t('notLoggedIn'));
-  document.getElementById('login-btns').style.display='block';
-  document.getElementById('logout-btns').style.display='none';
-  document.getElementById('main-app').style.display='none';
-  document.getElementById('login-overlay').style.display='flex';
 }
 
+function silentRefresh(){
+  if(!tokenClient)return;
+  tokenClient.requestAccessToken({prompt:''});
+}
+
+function signIn(){
+  if(!tokenClient)return;
+  tokenClient.requestAccessToken({prompt:'consent'});
+}
+
+async function showMainApp(){
+  document.getElementById('login-overlay').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  document.getElementById('login-btns').style.display='none';
+  document.getElementById('logout-btns').style.display='flex';
+  setSS('loading',T('loading'));
+  await ensureSheets();
+  await loadFromSheets();
+  render();
+  checkCCAutoPay();
+}
+function showLoginScreen(){document.getElementById('login-overlay').style.display='flex';document.getElementById('main-app').style.display='none';}
+
+function signOut(){
+  if(accessToken)google.accounts.oauth2.revoke(accessToken);
+  accessToken=null;setSS('',T('notLoggedIn'));
+  document.getElementById('login-btns').style.display='block';
+  document.getElementById('logout-btns').style.display='none';
+  showLoginScreen();
+}
+
+// ── Sheets API ────────────────────────────────────────────────────────────────
 async function shReq(method,path,body){
   const r=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+SHEET_ID+path,{method,headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
   if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
@@ -621,100 +544,93 @@ async function ensureSheets(){
     const needed=['Transactions','Accounts','Investments','Categories'].filter(s=>!existing.includes(s));
     if(needed.length){
       await shReq('POST',':batchUpdate',{requests:needed.map(title=>({addSheet:{properties:{title}}}))});
-      const headers={
-        Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],
-        Accounts:['id','type','name','balance','dueDay'],
-        Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],
-        Categories:['type','name']
-      };
+      const headers={Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],Accounts:['id','type','name','balance','dueDay','debitBankId'],Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name']};
       await shReq('POST','/values:batchUpdate',{valueInputOption:'RAW',data:needed.map(s=>({range:`${s}!A1`,values:[headers[s]]}))});
     }
-  }catch(e){setSS('err',t('initFail'));}
+  }catch(e){setSS('err',T('initFail'));}
 }
 async function loadFromSheets(){
-  setSS('loading',t('loading'));
+  setSS('loading',T('loading'));
   try{
-    const ranges=['Transactions!A2:Z','Accounts!A2:Z','Investments!A2:Z','Categories!A2:Z'];
-    const res=await shReq('GET','/values:batchGet?ranges='+ranges.map(encodeURIComponent).join('&ranges='));
+    const res=await shReq('GET','/values:batchGet?ranges='+['Transactions!A2:Z','Accounts!A2:Z','Investments!A2:Z','Categories!A2:Z'].map(encodeURIComponent).join('&ranges='));
     const vr=res.valueRanges;
     state.txs=(vr[0]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'expense',amount:+r[2]||0,cat:r[3]||'',note:r[4]||'',date:r[5]||today(),source:r[6]||'',optional:r[7]==='true',confirmed:r[8]==='true',installGroup:r[9]||'',installIndex:+r[10]||0,installTotal:+r[11]||0}));
-    state.accounts=(vr[1]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'bank',name:r[2]||'',balance:+r[3]||0,dueDay:+r[4]||0}));
+    state.accounts=(vr[1]?.values||[]).map(r=>({id:+r[0]||0,type:r[1]||'bank',name:r[2]||'',balance:+r[3]||0,dueDay:+r[4]||0,debitBankId:r[5]||''}));
     state.investments=(vr[2]?.values||[]).map(r=>({id:+r[0]||0,invType:r[1]||'stock',name:r[2]||'',ticker:r[3]||'',price:+r[4]||0,shares:+r[5]||0,curPrice:+r[6]||0,date:r[7]||today(),source:r[8]||''}));
     const catRows=vr[3]?.values||[];
     if(catRows.length){state.cats={expense:[],income:[]};catRows.forEach(r=>{if(r[0]==='expense'||r[0]==='income')state.cats[r[0]].push(r[1]||'');});}
     state.nextId=Math.max(1,...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id))+1;
-    saveCache();setSS('ok',t('synced'));
-  }catch(e){setSS('err',t('syncFail'));loadCache();}
+    saveCache();setSS('ok',T('synced'));
+  }catch(e){setSS('err',T('syncFail'));loadCache();}
 }
-async function writeSheet(name,rows){const range=name+'!A2:Z';await shReq('PUT','/values/'+encodeURIComponent(range)+'?valueInputOption=RAW',{range,values:rows.length?rows:[['']]});}
+async function writeSheet(name,rows){await shReq('PUT','/values/'+encodeURIComponent(name+'!A2:Z')+'?valueInputOption=RAW',{range:name+'!A2:Z',values:rows.length?rows:[['']]});}
 async function syncAll(){
-  if(syncing||!accessToken)return;syncing=true;setSS('loading',t('loading'));
+  if(syncing||!accessToken)return;syncing=true;setSS('loading',T('loading'));
   try{
     await writeSheet('Transactions',state.txs.map(x=>[x.id,x.type,x.amount,x.cat,x.note,x.date,x.source||'',x.optional||false,x.confirmed||false,x.installGroup||'',x.installIndex||0,x.installTotal||0]));
-    await writeSheet('Accounts',state.accounts.map(x=>[x.id,x.type,x.name,x.balance,x.dueDay||'']));
+    await writeSheet('Accounts',state.accounts.map(x=>[x.id,x.type,x.name,x.balance,x.dueDay||'',x.debitBankId||'']));
     await writeSheet('Investments',state.investments.map(x=>[x.id,x.invType||'stock',x.name,x.ticker,x.price,x.shares,x.curPrice,x.date,x.source||'']));
     await writeSheet('Categories',[...state.cats.expense.map(c=>['expense',c]),...state.cats.income.map(c=>['income',c])]);
-    saveCache();const nt=new Date();setSS('ok',`${t('synced')} ${String(nt.getHours()).padStart(2,'0')}:${String(nt.getMinutes()).padStart(2,'0')}`);
-  }catch(e){setSS('err',t('syncFail'));}syncing=false;
+    saveCache();const nt=new Date();setSS('ok',`${T('synced')} ${String(nt.getHours()).padStart(2,'0')}:${String(nt.getMinutes()).padStart(2,'0')}`);
+  }catch(e){setSS('err',T('syncFail'));}syncing=false;
 }
-function setSS(s,l){lastSyncStatus=s;lastSyncLabel=l;['sync-dot','sync-dot2'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='sync-dot'+(s?' '+s:'');});['sync-label','sync-label2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=l;});}
+function setSS(s,l){lastSS=s;lastSL=l;['sync-dot','sync-dot2'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='sync-dot'+(s?' '+s:'');});['sync-label','sync-label2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=l;});}
 
+// ── CC auto-pay ───────────────────────────────────────────────────────────────
+function checkCCAutoPay(){
+  const todayDate=new Date();
+  const todayD=todayDate.getDate();
+  state.accounts.filter(a=>a.type==='cc'&&a.dueDay>0&&a.dueDay===todayD&&a.debitBankId&&a.balance>0).forEach(cc=>{
+    const bank=state.accounts.find(b=>String(b.id)===String(cc.debitBankId));
+    if(!bank)return;
+    const alreadyPaid=state.txs.some(tx=>tx.type==='transfer'&&tx.note&&tx.note.includes(cc.name)&&tx.date===today());
+    if(alreadyPaid)return;
+    const amt=cc.balance;
+    bank.balance=Math.round((bank.balance-amt)*100)/100;
+    cc.balance=0;
+    state.txs.unshift({id:state.nextId++,type:'transfer',amount:amt,cat:'轉帳',note:`自動繳費 ${cc.name}`,date:today(),source:String(bank.id),optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
+    saveCache();syncAll();
+  });
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
 function clearE(id){const el=document.getElementById(id);if(el)el.style.display='none';}
 function showE(id,m){const el=document.getElementById(id);el.textContent=m;el.style.display='block';}
 function changeMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}saveCache();render();}
 function switchTab(tab,el){document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));document.getElementById('panel-'+tab).classList.add('on');}
+function toggleHide(w){if(w==='bank'){hideBank=!hideBank;document.getElementById('eye-bank').textContent=hideBank?'🙈':'👁';document.getElementById('s-bank').textContent=hideBank?'••••':fmt(state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0));}else{hideInv=!hideInv;document.getElementById('eye-inv').textContent=hideInv?'🙈':'👁';document.getElementById('s-inv').textContent=hideInv?'••••':fmt(state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0));}saveCache();}
 
-function toggleHide(which){
-  if(which==='bank'){hideBank=!hideBank;document.getElementById('eye-bank').textContent=hideBank?'🙈':'👁';document.getElementById('s-bank').textContent=hideBank?'••••':fmt(state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0));}
-  else{hideInv=!hideInv;document.getElementById('eye-inv').textContent=hideInv?'🙈':'👁';document.getElementById('s-inv').textContent=hideInv?'••••':fmt(state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0));}
-  saveCache();
-}
-
-function setType(t2){
-  txType=t2;isOpt=false;isInst=false;
+function setType(tp){
+  txType=tp;isOpt=false;isInst=false;
   ['exp','inc','inv','xfr'].forEach(k=>document.getElementById('tbtn-'+k).className='tbtn');
-  document.getElementById('tbtn-'+{expense:'exp',income:'inc',invest:'inv',transfer:'xfr'}[t2]).classList.add('on-'+{expense:'exp',income:'inc',invest:'inv',transfer:'xfr'}[t2]);
-  document.getElementById('form-tx').style.display=['expense','income'].includes(t2)?'block':'none';
-  document.getElementById('form-invest').style.display=t2==='invest'?'block':'none';
-  document.getElementById('form-transfer').style.display=t2==='transfer'?'block':'none';
-  document.getElementById('optional-wrap').style.display=t2==='expense'?'block':'none';
-  document.getElementById('install-wrap').style.display=t2==='expense'?'block':'none';
+  const km={expense:'exp',income:'inc',invest:'inv',transfer:'xfr'};
+  document.getElementById('tbtn-'+km[tp]).classList.add('on-'+km[tp]);
+  document.getElementById('form-tx').style.display=['expense','income'].includes(tp)?'block':'none';
+  document.getElementById('form-invest').style.display=tp==='invest'?'block':'none';
+  document.getElementById('form-transfer').style.display=tp==='transfer'?'block':'none';
+  document.getElementById('optional-wrap').style.display=tp==='expense'?'block':'none';
+  document.getElementById('install-wrap').style.display=tp==='expense'?'block':'none';
   document.getElementById('inst-fields').style.display='none';
   updateOptUI();updateInstUI();
-  const clr={expense:'linear-gradient(135deg,#991b1b,var(--red))',income:'linear-gradient(135deg,#065f46,var(--green))',invest:'linear-gradient(135deg,#4c1d95,var(--purple))',transfer:'linear-gradient(135deg,#b45309,var(--amber))'};
-  document.getElementById('submit-btn').style.background=clr[t2]||'linear-gradient(135deg,var(--blue2),var(--blue))';
+  const clr={expense:'linear-gradient(135deg,#7f1d1d,var(--red))',income:'linear-gradient(135deg,#064e3b,var(--green))',invest:'linear-gradient(135deg,#4c1d95,var(--purple))',transfer:'linear-gradient(135deg,#8a6a20,var(--gold))'};
+  document.getElementById('submit-btn').style.background=clr[tp]||'linear-gradient(135deg,#8a6a20,var(--gold))';
   refreshSelects();
 }
-function setInvType(it){
-  invType=it;
-  document.getElementById('inv-tbtn-stock').className='inv-tbtn'+(it==='stock'?' on-stock':'');
-  document.getElementById('inv-tbtn-crypto').className='inv-tbtn'+(it==='crypto'?' on-crypto':'');
-  document.getElementById('inv-name-lbl').textContent=it==='stock'?t('stockName'):'Name';
-  document.getElementById('inv-ticker-lbl').textContent=t('ticker');
-  document.getElementById('inv-shares-lbl').textContent=it==='stock'?t('shares'):'Qty';
-}
-function setAcctType(at){
-  acctType=at;
-  document.getElementById('acct-tbtn-bank').className='tbtn'+(at==='bank'?' on-inc':'');
-  document.getElementById('acct-tbtn-cc').className='tbtn'+(at==='cc'?' on-exp':'');
-  document.getElementById('a-bal-lbl').textContent=at==='bank'?t('balance'):t('balance');
-  document.getElementById('cc-due-wrap').style.display=at==='cc'?'block':'none';
-}
+function setInvType(it){invType=it;document.getElementById('inv-tbtn-stock').className='inv-tbtn'+(it==='stock'?' on-stock':'');document.getElementById('inv-tbtn-crypto').className='inv-tbtn'+(it==='crypto'?' on-crypto':'');}
+function setAcctType(at){acctType=at;document.getElementById('acct-tbtn-bank').className='tbtn'+(at==='bank'?' on-inc':'');document.getElementById('acct-tbtn-cc').className='tbtn'+(at==='cc'?' on-exp':'');document.getElementById('a-bal-lbl').textContent=at==='bank'?T('balance'):T('balance');document.getElementById('cc-extra').style.display=at==='cc'?'block':'none';if(at==='cc')refreshDebitBankSelect();}
 function toggleOpt(){isOpt=!isOpt;updateOptUI();}
 function updateOptUI(){const b=document.getElementById('opt-box'),l=document.getElementById('opt-lbl');if(b)b.className='chk'+(isOpt?' on':'');if(l)l.className='chk-lbl'+(isOpt?' on':'');}
 function toggleInst(){isInst=!isInst;updateInstUI();document.getElementById('inst-fields').style.display=isInst?'block':'none';if(isInst)updatePreview();}
 function updateInstUI(){const b=document.getElementById('inst-box'),l=document.getElementById('inst-lbl');if(b)b.className='chk'+(isInst?' on':'');if(l)l.className='chk-lbl'+(isInst?' on':'');}
-
 function updatePreview(){
   const n=parseInt(document.getElementById('inst-count').value)||12;
   const i=parseInt(document.getElementById('inst-interval').value)||1;
   const u=document.getElementById('inst-unit').value;
   const start=document.getElementById('f-date').value||today();
   const a=parseFloat(document.getElementById('f-amt').value)||0;
-  const ul=t(u);
-  const dates=genInstDates(start,Math.min(n,3),i,u);
-  const prev=document.getElementById('inst-preview');
-  if(prev)prev.textContent=t('instPreview').replace('{n}',n).replace('{i}',i).replace('{u}',ul).replace('{a}',a>0?fmt(a/n):'?').replace('{d1}',dates[0]?.slice(5).replace('-','/')||'').replace('{d2}',dates[1]?.slice(5).replace('-','/')||'');
+  const first=genInstDates(start,1,i,u)[0]||'';
+  const el=document.getElementById('inst-preview');
+  if(el)el.textContent=T('instPrev').replace('{n}',n).replace('{i}',i).replace('{u}',T(u)).replace('{a}',a>0?fmt(a/n):'?').replace('{d}',first.slice(5).replace('-','/'));
 }
 document.getElementById('inst-count').addEventListener('input',updatePreview);
 document.getElementById('inst-interval').addEventListener('input',updatePreview);
@@ -733,31 +649,38 @@ function refreshSelects(){
   const allOpts=state.accounts.map(a=>`<option value="${a.id}">${a.type==='cc'?'💳':'🏦'} ${a.name}</option>`).join('');
   const bankOpts=state.accounts.filter(a=>a.type==='bank').map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
   ['f-source','fi-source'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=no+allOpts;});
-  ['ft-from','ft-to','xfr-from','xfr-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=bankOpts||`<option value="">${lang==='en'?'No accounts':'（請先新增帳戶）'}</option>`;});
+  ['ft-from','ft-to','xfr-from','xfr-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=bankOpts;});
+}
+function refreshDebitBankSelect(){
+  const sel=document.getElementById('a-debit-bank');
+  if(!sel)return;
+  const no=`<option value="">${lang==='en'?'None (manual)':'不設定（手動繳費）'}</option>`;
+  const banks=state.accounts.filter(a=>a.type==='bank').map(a=>`<option value="${a.id}">🏦 ${a.name}</option>`).join('');
+  sel.innerHTML=no+banks;
 }
 
+// ── CRUD ──────────────────────────────────────────────────────────────────────
 function addEntry(){
   if(txType==='invest')return addInvest();
   if(txType==='transfer')return addXfr();
   const a=parseFloat(document.getElementById('f-amt').value);
-  if(!a||a<=0)return showE('ferr',t('amount')+'?');
-  const cat=document.getElementById('f-cat').value||(txType==='income'?state.cats.income[0]:state.cats.expense[0]);
+  if(!a||a<=0)return showE('ferr',T('amount')+'?');
+  const cats=txType==='income'?state.cats.income:state.cats.expense;
+  const cat=document.getElementById('f-cat').value||cats[0]||'其他';
   const note=document.getElementById('f-note').value.trim();
   const date=document.getElementById('f-date').value||today();
   const source=document.getElementById('f-source').value;
-
   if(txType==='expense'&&isInst){
     const n=parseInt(document.getElementById('inst-count').value)||12;
     const i=parseInt(document.getElementById('inst-interval').value)||1;
     const u=document.getElementById('inst-unit').value;
     const perA=Math.round(a/n*100)/100;
-    const dates=genInstDates(date,n,i,u);
     const gid='inst_'+Date.now();
-    dates.forEach((d,idx)=>{state.txs.push({id:state.nextId++,type:'expense',amount:perA,cat,note:`${note||cat}（${idx+1}/${n}）`,date:d,source,optional:isOpt,confirmed:false,installGroup:gid,installIndex:idx+1,installTotal:n});});
+    genInstDates(date,n,i,u).forEach((d,idx)=>{state.txs.push({id:state.nextId++,type:'expense',amount:perA,cat,note:`${note||cat}（${idx+1}/${n}）`,date:d,source,optional:isOpt,confirmed:false,installGroup:gid,installIndex:idx+1,installTotal:n});});
     state.txs.sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('f-amt').value='';document.getElementById('f-note').value='';
     isOpt=false;isInst=false;updateOptUI();updateInstUI();document.getElementById('inst-fields').style.display='none';
-    saveCache();render();syncAll();alert(`✅ ${n} ${t('installment')}`);return;
+    saveCache();render();syncAll();return;
   }
   const id=state.nextId++;
   state.txs.unshift({id,type:txType,amount:a,cat,note,date,source,optional:txType==='expense'?isOpt:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
@@ -767,9 +690,9 @@ function addEntry(){
   isOpt=false;updateOptUI();saveCache();render();syncAll();
 }
 function addInvest(){
-  const name=document.getElementById('fi-name').value.trim();if(!name)return showE('ferr',t('stockName')+'?');
-  const p=parseFloat(document.getElementById('fi-price').value)||0;const s=parseFloat(document.getElementById('fi-shares').value)||0;
-  if(!p||!s)return showE('ferr',t('buyPrice')+'?');
+  const name=document.getElementById('fi-name').value.trim();if(!name)return showE('ferr',T('stockName')+'?');
+  const p=parseFloat(document.getElementById('fi-price').value)||0,s=parseFloat(document.getElementById('fi-shares').value)||0;
+  if(!p||!s)return showE('ferr',T('buyPrice')+'?');
   const cur=parseFloat(document.getElementById('fi-cur').value)||p;
   const source=document.getElementById('fi-source').value;
   state.investments.push({id:state.nextId++,invType,name,ticker:document.getElementById('fi-ticker').value.trim(),price:p,shares:s,curPrice:cur,date:document.getElementById('fi-date').value||today(),source});
@@ -778,9 +701,9 @@ function addInvest(){
   saveCache();render();syncAll();
 }
 function addXfr(){
-  const a=parseFloat(document.getElementById('ft-amt').value);if(!a||a<=0)return showE('ferr',t('amount')+'?');
+  const a=parseFloat(document.getElementById('ft-amt').value);if(!a||a<=0)return showE('ferr',T('amount')+'?');
   const fId=document.getElementById('ft-from').value,tId=document.getElementById('ft-to').value;
-  if(!fId||!tId||fId===tId)return showE('ferr',t('from')+'/'+t('to')+'?');
+  if(!fId||!tId||fId===tId)return showE('ferr',T('from')+'?');
   const from=state.accounts.find(x=>String(x.id)===fId),to=state.accounts.find(x=>String(x.id)===tId);
   if(from)from.balance=Math.round((from.balance-a)*100)/100;if(to)to.balance=Math.round((to.balance+a)*100)/100;
   state.txs.unshift({id:state.nextId++,type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('ft-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('ft-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
@@ -788,9 +711,9 @@ function addXfr(){
   saveCache();render();syncAll();
 }
 function doTransfer(){
-  const a=parseFloat(document.getElementById('xfr-amt').value);if(!a||a<=0)return showE('xfrerr',t('amount')+'?');
+  const a=parseFloat(document.getElementById('xfr-amt').value);if(!a||a<=0)return showE('xfrerr',T('amount')+'?');
   const fId=document.getElementById('xfr-from').value,tId=document.getElementById('xfr-to').value;
-  if(!fId||!tId||fId===tId)return showE('xfrerr',t('from')+'/'+t('to')+'?');
+  if(!fId||!tId||fId===tId)return showE('xfrerr',T('from')+'?');
   const from=state.accounts.find(x=>String(x.id)===fId),to=state.accounts.find(x=>String(x.id)===tId);
   if(from)from.balance=Math.round((from.balance-a)*100)/100;if(to)to.balance=Math.round((to.balance+a)*100)/100;
   state.txs.unshift({id:state.nextId++,type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('xfr-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('xfr-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
@@ -798,12 +721,13 @@ function doTransfer(){
   saveCache();render();syncAll();
 }
 function addAcct(){
-  const name=document.getElementById('a-name').value.trim();if(!name)return showE('aerr',t('name')+'?');
+  const name=document.getElementById('a-name').value.trim();if(!name)return showE('aerr',T('name')+'?');
   const bal=parseFloat(document.getElementById('a-bal').value)||0;
   const dueDay=acctType==='cc'?(parseInt(document.getElementById('a-due').value)||0):0;
+  const debitBankId=acctType==='cc'?document.getElementById('a-debit-bank').value:'';
   const ex=state.accounts.find(a=>a.name===name&&a.type===acctType);
-  if(ex){ex.balance=bal;if(dueDay)ex.dueDay=dueDay;}
-  else state.accounts.push({id:state.nextId++,type:acctType,name,balance:bal,dueDay});
+  if(ex){ex.balance=bal;if(dueDay)ex.dueDay=dueDay;if(debitBankId!==undefined)ex.debitBankId=debitBankId;}
+  else state.accounts.push({id:state.nextId++,type:acctType,name,balance:bal,dueDay,debitBankId});
   document.getElementById('a-name').value='';document.getElementById('a-bal').value='';document.getElementById('a-due').value='';
   saveCache();render();syncAll();
 }
@@ -813,105 +737,55 @@ function delAcct(id){if(!confirm('Delete?'))return;state.accounts=state.accounts
 function delInv(id){if(!confirm('Delete?'))return;state.investments=state.investments.filter(x=>x.id!==id);saveCache();render();syncAll();}
 function addCat(){
   const name=document.getElementById('nc-name').value.trim();const type=document.getElementById('nc-type').value;
-  if(!name)return showE('ncerr',t('catName')+'?');
+  if(!name)return showE('ncerr',T('catName')+'?');
   if(state.cats[type].includes(name))return showE('ncerr','Exists');
-  state.cats[type].push(name);document.getElementById('nc-name').value='';
-  saveCache();render();syncAll();
+  state.cats[type].push(name);document.getElementById('nc-name').value='';saveCache();render();syncAll();
 }
 function delCat(type,name){
-  const def={expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']};
-  if(def[type]?.includes(name))return;
-  if(!confirm('Delete '+name+'?'))return;
+  if(!confirm(`Delete "${name}"?`))return;
   state.cats[type]=state.cats[type].filter(c=>c!==name);saveCache();render();syncAll();
 }
 
-// ── analysis ─────────────────────────────────────────────────────────────────
-function setAnalysisRange(days,el){
-  analysisRange=days;document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderAnalysis();
-}
+// ── analysis ──────────────────────────────────────────────────────────────────
+let analysisRangeVal=7;
+function setAR(days,el){analysisRangeVal=days;document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderAnalysis();}
 function renderAnalysis(){
   const now=new Date();
   let txs;
-  if(analysisRange===0){
-    txs=state.txs.filter(tx=>{const d=new Date(tx.date);return d.getFullYear()===curYear&&d.getMonth()===curMonth&&tx.type==='expense';});
-  } else {
-    const cutoff=new Date(now);cutoff.setDate(cutoff.getDate()-analysisRange);
-    txs=state.txs.filter(tx=>tx.type==='expense'&&new Date(tx.date)>=cutoff&&new Date(tx.date)<=now);
-  }
+  if(analysisRangeVal===0){txs=state.txs.filter(tx=>{const d=new Date(tx.date);return d.getFullYear()===curYear&&d.getMonth()===curMonth&&tx.type==='expense';});}
+  else{const cut=new Date(now);cut.setDate(cut.getDate()-analysisRangeVal);txs=state.txs.filter(tx=>tx.type==='expense'&&new Date(tx.date)>=cut&&new Date(tx.date)<=now);}
   const total=txs.reduce((s,x)=>s+x.amount,0);
   const catMap={};txs.forEach(x=>{catMap[x.cat]=(catMap[x.cat]||0)+x.amount;});
   const topCat=Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
   const topTx=txs.length?txs.reduce((a,b)=>a.amount>b.amount?a:b,txs[0]):null;
-
-  // vs last month
-  const lm=new Date(curYear,curMonth-1,1);const lmY=lm.getFullYear(),lmM=lm.getMonth();
-  const lastMonthTxs=state.txs.filter(tx=>{const d=new Date(tx.date);return tx.type==='expense'&&d.getFullYear()===lmY&&d.getMonth()===lmM;});
-  const lastMonthTotal=lastMonthTxs.reduce((s,x)=>s+x.amount,0);
-  const diff=total-lastMonthTotal;
-  const pct=lastMonthTotal>0?((diff/lastMonthTotal)*100).toFixed(1):null;
-
-  const el=document.getElementById('analysis-content');
-  el.innerHTML=`
-    <div class="analysis-row">
-      <span class="analysis-label">${t('totalExp')}</span>
-      <span class="analysis-val neg">${fmt(total)}</span>
-    </div>
-    <div class="analysis-row">
-      <span class="analysis-label">${t('topExp')}</span>
-      <span class="analysis-val">${topCat?`${topCat[0]} ${fmt(topCat[1])}`:'—'}</span>
-    </div>
-    <div class="analysis-row">
-      <span class="analysis-label">${t('topTx')}</span>
-      <span class="analysis-val">${topTx?`${topTx.note||topTx.cat} ${fmt(topTx.amount)}`:'—'}</span>
-    </div>
-    ${analysisRange===0?`
-    <div class="analysis-row" style="flex-direction:column;align-items:flex-start;gap:5px">
-      <span class="analysis-label">${t('vsLastMonth')} ${fmt(lastMonthTotal)}</span>
-      <div style="width:100%">
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
-          <span style="color:var(--text3)">${lang==='en'?'Last':'上月'}</span>
-          <span class="${diff>=0?'neg':'pos'}">${diff>=0?'+':'-'}${fmt(Math.abs(diff))} ${pct!==null?`(${diff>=0?'+':''}${pct}%)`:''}  </span>
-        </div>
-        <div class="compare-bar">
-          <div class="compare-fill" style="width:${lastMonthTotal>0?Math.min(100,lastMonthTotal/Math.max(total,lastMonthTotal)*100):0}%;background:var(--text3)"></div>
-        </div>
-        <div class="compare-bar" style="margin-top:3px">
-          <div class="compare-fill" style="width:${Math.min(100,total/Math.max(total,lastMonthTotal)*100)}%;background:${diff>0?'var(--red)':'var(--green)'}"></div>
-        </div>
-      </div>
-    </div>`:''}
+  const lm=new Date(curYear,curMonth-1,1);
+  const lastTxs=state.txs.filter(tx=>{const d=new Date(tx.date);return tx.type==='expense'&&d.getFullYear()===lm.getFullYear()&&d.getMonth()===lm.getMonth();});
+  const lastTotal=lastTxs.reduce((s,x)=>s+x.amount,0);
+  const diff=total-lastTotal;
+  const pct=lastTotal>0?((diff/lastTotal)*100).toFixed(1):null;
+  document.getElementById('analysis-content').innerHTML=`
+    <div class="analysis-row"><span class="analysis-label">${T('totalExp')}</span><span class="analysis-val neg">${fmt(total)}</span></div>
+    <div class="analysis-row"><span class="analysis-label">${T('topExp')}</span><span class="analysis-val">${topCat?`${topCat[0]} · ${fmt(topCat[1])}`:'—'}</span></div>
+    <div class="analysis-row"><span class="analysis-label">${T('topTx')}</span><span class="analysis-val">${topTx?`${topTx.note||topTx.cat} · ${fmt(topTx.amount)}`:'—'}</span></div>
+    ${analysisRangeVal===0?`<div class="analysis-row" style="flex-direction:column;align-items:flex-start;gap:5px"><span class="analysis-label">${T('vsLastMonth')} ${fmt(lastTotal)}</span><div style="width:100%"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--text3)">${lang==='en'?'Last Month':'上月'}</span><span class="${diff>=0?'neg':'pos'}">${diff>=0?'+':'-'}${fmt(Math.abs(diff))}${pct!==null?` (${diff>=0?'+':''}${pct}%)`:''}  </span></div><div class="compare-bar"><div class="compare-fill" style="width:${lastTotal>0?Math.min(100,lastTotal/Math.max(total,lastTotal)*100):0}%;background:var(--text3)"></div></div><div class="compare-bar" style="margin-top:3px"><div class="compare-fill" style="width:${Math.min(100,total/Math.max(total,lastTotal,1)*100)}%;background:${diff>0?'var(--red)':'var(--green)'}"></div></div></div></div>`:''}
   `;
 }
 
 // ── chart range ───────────────────────────────────────────────────────────────
-function setChartRange(r,el){
-  chartRange=r;document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');
-  document.getElementById('chart-custom-range').style.display=r==='custom'?'block':'none';
-  if(r!=='custom')renderCharts(getChartTxs());
-}
-function applyCustomRange(){
-  chartStart=document.getElementById('chart-start').value;
-  chartEnd=document.getElementById('chart-end').value;
-  if(chartStart&&chartEnd)renderCharts(getChartTxs());
-}
+function setCR(r,el){chartRange=r;document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('chart-custom-range').style.display=r==='custom'?'block':'none';if(r!=='custom')renderCharts(getChartTxs());}
+function applyCustomRange(){chartStart=document.getElementById('chart-start').value;chartEnd=document.getElementById('chart-end').value;if(chartStart&&chartEnd)renderCharts(getChartTxs());}
 function getChartTxs(){
-  const now=new Date();
-  if(chartRange==='month'){
-    return state.txs.filter(tx=>{const d=new Date(tx.date);return d.getFullYear()===curYear&&d.getMonth()===curMonth;});
-  }
-  if(chartRange==='custom'&&chartStart&&chartEnd){
-    return state.txs.filter(tx=>tx.date>=chartStart&&tx.date<=chartEnd);
-  }
-  const days={month:0,'3m':90,'6m':180,'1y':365}[chartRange]||30;
-  const cutoff=new Date(now);cutoff.setDate(cutoff.getDate()-days);
-  return state.txs.filter(tx=>new Date(tx.date)>=cutoff&&new Date(tx.date)<=now);
+  if(chartRange==='month')return state.txs.filter(tx=>{const d=new Date(tx.date);return d.getFullYear()===curYear&&d.getMonth()===curMonth;});
+  if(chartRange==='custom'&&chartStart&&chartEnd)return state.txs.filter(tx=>tx.date>=chartStart&&tx.date<=chartEnd);
+  const days={'3m':90,'6m':180,'1y':365}[chartRange]||30;
+  const cut=new Date();cut.setDate(cut.getDate()-days);
+  return state.txs.filter(tx=>new Date(tx.date)>=cut);
 }
-
 function monthTxs(){return state.txs.filter(tx=>{const d=new Date(tx.date);return d.getFullYear()===curYear&&d.getMonth()===curMonth;});}
 
+// ── render ────────────────────────────────────────────────────────────────────
 function render(){
-  document.getElementById('mlabel').textContent=monthLabel(curYear,curMonth);
-  applyLang();
+  document.getElementById('mlabel').textContent=mlabel(curYear,curMonth);applyLang();
   const mt=monthTxs();
   const inc=mt.filter(x=>x.type==='income').reduce((s,x)=>s+x.amount,0);
   const exp=mt.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
@@ -927,21 +801,19 @@ function render(){
   document.getElementById('s-cc').textContent=fmt(ccSpend);
   document.getElementById('s-inv').textContent=hideInv?'••••':fmt(invTotal);
 
-  // CC alerts
   const todayD=new Date().getDate();
   const alertHtml=state.accounts.filter(a=>a.type==='cc'&&a.dueDay>0&&Math.abs(a.dueDay-todayD)<=3).map(a=>{
-    const diff=a.dueDay-todayD;
-    const msg=diff===0?(lang==='en'?'Due today':'今天扣款'):diff>0?(lang==='en'?`${diff}d left`:`還有 ${diff} 天`):(lang==='en'?`${Math.abs(diff)}d ago`:`${Math.abs(diff)} 天前`);
-    return `<div class="alert-bar">⚡ ${a.name} — ${msg}</div>`;
+    const diff=a.dueDay-todayD;const bank=state.accounts.find(b=>String(b.id)===String(a.debitBankId));
+    const msg=diff===0?'今天自動扣款':diff>0?`${diff}天後扣款`:`${Math.abs(diff)}天前`;
+    const bankNote=bank?` ← ${bank.name}`:'';
+    return `<div class="alert-bar">⚡ ${a.name}${bankNote} — ${msg} ${fmt(a.balance)}</div>`;
   }).join('');
   ['cc-alerts-add','cc-alerts-acct'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=alertHtml;});
 
-  // analysis
   renderAnalysis();
 
-  // tx list
-  const bgMap={expense:'rgba(255,77,109,.12)',income:'rgba(0,214,143,.12)',invest:'rgba(167,139,250,.12)',transfer:'rgba(251,191,36,.12)'};
-  const clsMap={expense:'neg',income:'pos',invest:'pur',transfer:'amb'};
+  const bgMap={expense:'rgba(255,77,109,.1)',income:'rgba(0,214,143,.1)',invest:'rgba(167,139,250,.1)',transfer:'rgba(201,168,76,.1)'};
+  const clsMap={expense:'neg',income:'pos',invest:'pur',transfer:'gld'};
   const pfxMap={expense:'-',income:'+',invest:'▲',transfer:'⇄'};
   const txEl=document.getElementById('tx-list');
   txEl.innerHTML=mt.length?mt.map(tx=>{
@@ -950,90 +822,63 @@ function render(){
     const optBadge=tx.optional?`<span class="badge badge-opt">${tx.confirmed?'✓':'⚠'}</span>`:'';
     const instBadge=tx.installTotal>0?`<span class="badge badge-inst">${tx.installIndex}/${tx.installTotal}</span>`:'';
     const cfBtn=tx.optional?`<button class="conf-btn${tx.confirmed?' on':''}" onclick="toggleConfirm(${tx.id})">${tx.confirmed?'✓':'OK'}</button>`:'';
-    return `<div class="tx${tx.optional&&tx.confirmed?' opt-confirmed':''}">
-      <div class="tx-ico" style="background:${bgMap[tx.type]||'rgba(255,255,255,.05)'}">${iconFor(tx.cat)}</div>
-      <div class="tx-info">
-        <div class="tx-name">${tx.note||tx.cat}</div>
-        <div class="tx-meta">${tx.cat} · ${tx.date.slice(5).replace('-','/')}${src} ${optBadge}${instBadge}</div>
-      </div>
-      <div class="tx-amt ${clsMap[tx.type]||''}">${pfxMap[tx.type]||''}${fmt(tx.amount)}</div>
-      <div class="tx-actions">${cfBtn}<button class="delbtn" onclick="delTx(${tx.id})">×</button></div>
-    </div>`;
-  }).join(''):`<div class="empty">${t('noRecord')}</div>`;
+    return `<div class="tx${tx.optional&&tx.confirmed?' opt-confirmed':''}"><div class="tx-ico" style="background:${bgMap[tx.type]||'rgba(255,255,255,.05)'}">${iconFor(tx.cat)}</div><div class="tx-info"><div class="tx-name">${tx.note||tx.cat}</div><div class="tx-meta">${tx.cat} · ${tx.date.slice(5).replace('-','/')}${src} ${optBadge}${instBadge}</div></div><div class="tx-amt ${clsMap[tx.type]||''}">${pfxMap[tx.type]||''}${fmt(tx.amount)}</div><div class="tx-actions">${cfBtn}<button class="delbtn" onclick="delTx(${tx.id})">×</button></div></div>`;
+  }).join(''):`<div class="empty">${T('noRecord')}</div>`;
 
   // accounts
   const banks=state.accounts.filter(a=>a.type==='bank');const ccs=state.accounts.filter(a=>a.type==='cc');
-  document.getElementById('bank-list').innerHTML=banks.length?banks.map(a=>`<div class="acct-item"><span style="font-size:18px">🏦</span><div style="flex:1"><div class="acct-name">${a.name}</div></div><span style="font-size:13px;font-weight:700;color:var(--blue)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No bank accounts':'還沒有銀行帳戶'}</div>`;
-  document.getElementById('cc-list').innerHTML=ccs.length?ccs.map(a=>`<div class="acct-item"><span style="font-size:18px">💳</span><div style="flex:1"><div class="acct-name">${a.name}</div>${a.dueDay?`<div class="acct-sub">${lang==='en'?'Auto-pay day':'扣款日'}: ${a.dueDay}</div>`:''}</div><span style="font-size:13px;font-weight:700;color:var(--red)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No credit cards':'還沒有信用卡'}</div>`;
+  document.getElementById('bank-list').innerHTML=banks.length?banks.map(a=>`<div class="acct-item"><span style="font-size:18px">🏦</span><div style="flex:1"><div class="acct-name">${a.name}</div></div><span style="font-size:13px;font-weight:700;color:var(--gold2)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No bank accounts':'還沒有銀行帳戶'}</div>`;
+  document.getElementById('cc-list').innerHTML=ccs.length?ccs.map(a=>{const bank=state.accounts.find(b=>String(b.id)===String(a.debitBankId));return`<div class="acct-item"><span style="font-size:18px">💳</span><div style="flex:1"><div class="acct-name">${a.name}</div>${a.dueDay?`<div class="acct-sub">${T('dueDay2')} ${a.dueDay} ${lang==='en'?'':'號'}${bank?` · ${bank.name}`:''}</div>`:''}</div><span style="font-size:13px;font-weight:700;color:var(--red)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`;}).join(''):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No credit cards':'還沒有信用卡'}</div>`;
 
   // investments
   const invT=state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
-  const invC=state.investments.reduce((s,i)=>s+i.price*i.shares,0);
-  const invG=invT-invC;
+  const invC=state.investments.reduce((s,i)=>s+i.price*i.shares,0);const invG=invT-invC;
   document.getElementById('inv-total-val').textContent=fmt(invT);
   const gEl=document.getElementById('inv-total-gain');gEl.textContent=(invG>=0?'+':'')+fmt(invG);gEl.className='sum-val '+(invG>=0?'pos':'neg');
   document.getElementById('inv-list').innerHTML=state.investments.length?state.investments.map(i=>{
     const cost=i.price*i.shares,val=i.curPrice*i.shares,gain=val-cost;
-    const pct=cost>0?((gain/cost)*100).toFixed(1):'0.0';
-    const gcls=gain>=0?'pos':'neg',gs=gain>=0?'+':'';
-    return `<div class="acct-item" style="align-items:flex-start"><span style="font-size:18px;margin-top:2px">${i.invType==='crypto'?'🪙':'📊'}</span><div style="flex:1;min-width:0"><div class="acct-name">${i.name}${i.ticker?` <span style="font-size:10px;color:var(--text3)">${i.ticker}</span>`:''}</div><div class="acct-sub ${gcls}">${gs}${fmt(gain)} (${gs}${pct}%) · ${i.shares}${i.invType==='crypto'?(lang==='en'?'':'枚'):(lang==='en'?'sh':'股')}</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:700;color:var(--purple)">${fmt(val)}</div><div class="acct-sub">${lang==='en'?'Cost':'成本'} ${fmt(cost)}</div></div><button class="btn-sm btn-del" onclick="delInv(${i.id})" style="margin-left:7px;flex-shrink:0">×</button></div>`;
-  }).join(''):`<div class="empty">${t('noInvest')}</div>`;
+    const pct=cost>0?((gain/cost)*100).toFixed(1):'0.0';const gcls=gain>=0?'pos':'neg',gs=gain>=0?'+':'';
+    return `<div class="acct-item" style="align-items:flex-start"><span style="font-size:18px;margin-top:2px">${i.invType==='crypto'?'🪙':'📊'}</span><div style="flex:1;min-width:0"><div class="acct-name">${i.name}${i.ticker?` <span style="font-size:10px;color:var(--text3)">${i.ticker}</span>`:''}</div><div class="acct-sub ${gcls}">${gs}${fmt(gain)} (${gs}${pct}%) · ${i.shares}${i.invType==='crypto'?'枚':'股'}</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:700;color:var(--purple)">${fmt(val)}</div><div class="acct-sub">${fmt(cost)}</div></div><button class="btn-sm btn-del" onclick="delInv(${i.id})" style="margin-left:7px;flex-shrink:0">×</button></div>`;
+  }).join(''):`<div class="empty">${T('noInvest')}</div>`;
 
-  // cat settings
-  const def={expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']};
-  const chipStyle='padding:5px 10px;border-radius:99px;border:1px solid var(--border);background:var(--bg3);font-size:12px;color:var(--text2)';
-  document.getElementById('exp-cats').innerHTML=state.cats.expense.map(c=>`<span style="${chipStyle}">${c}${!def.expense.includes(c)?` <span onclick="delCat('expense','${c}')" style="color:var(--red);cursor:pointer">×</span>`:''}</span>`).join('');
-  document.getElementById('inc-cats').innerHTML=state.cats.income.map(c=>`<span style="${chipStyle}">${c}${!def.income.includes(c)?` <span onclick="delCat('income','${c}')" style="color:var(--red);cursor:pointer">×</span>`:''}</span>`).join('');
+  // cat settings — 全部都可刪
+  const chipStyle='padding:5px 10px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:12px;color:var(--text2);display:inline-flex;align-items:center;gap:4px';
+  document.getElementById('exp-cats').innerHTML=state.cats.expense.map(c=>`<span style="${chipStyle}">${c}<span onclick="delCat('expense','${c}')" style="color:var(--red);cursor:pointer;font-size:13px">×</span></span>`).join('');
+  document.getElementById('inc-cats').innerHTML=state.cats.income.map(c=>`<span style="${chipStyle}">${c}<span onclick="delCat('income','${c}')" style="color:var(--red);cursor:pointer;font-size:13px">×</span></span>`).join('');
 
-  refreshSelects();
-  renderCharts(getChartTxs());
+  refreshSelects();renderCharts(getChartTxs());
 }
 
 function renderCharts(txs){
-  const tooltip={backgroundColor:'rgba(22,22,31,.95)',titleColor:'#f0f0ff',bodyColor:'#a0a0c0',borderColor:'#2a2a3a',borderWidth:1};
-
-  // group by date for bar
+  const tooltip={backgroundColor:'rgba(15,15,22,.97)',titleColor:'#f0ead6',bodyColor:'#b0a890',borderColor:'var(--border2)',borderWidth:1};
   const dateMap={};txs.forEach(tx=>{if(!dateMap[tx.date])dateMap[tx.date]={inc:0,exp:0};if(tx.type==='income')dateMap[tx.date].inc+=tx.amount;if(tx.type==='expense')dateMap[tx.date].exp+=tx.amount;});
   const sortedDates=Object.keys(dateMap).sort();
-  const barLabels=sortedDates.map(d=>d.slice(5).replace('-','/'));
-  const incD=sortedDates.map(d=>Math.round(dateMap[d].inc));
-  const expD=sortedDates.map(d=>Math.round(dateMap[d].exp));
-
   if(barChart){barChart.destroy();barChart=null;}
   if(sortedDates.length){
     barChart=new Chart(document.getElementById('chart-bar').getContext('2d'),{
-      type:'bar',data:{labels:barLabels,datasets:[{label:t('income'),data:incD,backgroundColor:'rgba(0,214,143,.75)',borderRadius:3,borderSkipped:false},{label:t('expense'),data:expD,backgroundColor:'rgba(255,77,109,.75)',borderRadius:3,borderSkipped:false}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tooltip,callbacks:{label:c=>'NT$'+c.raw.toLocaleString()}}},scales:{x:{ticks:{font:{size:10},color:'#60607a',maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false},border:{color:'#2a2a3a'}},y:{ticks:{font:{size:10},color:'#60607a',callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(42,42,58,.6)'},border:{color:'#2a2a3a'}}}}
+      type:'bar',data:{labels:sortedDates.map(d=>d.slice(5).replace('-','/')),datasets:[{label:T('income'),data:sortedDates.map(d=>Math.round(dateMap[d].inc)),backgroundColor:'rgba(0,214,143,.7)',borderRadius:3,borderSkipped:false},{label:T('expense'),data:sortedDates.map(d=>Math.round(dateMap[d].exp)),backgroundColor:'rgba(255,77,109,.7)',borderRadius:3,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tooltip,callbacks:{label:c=>'NT$'+c.raw.toLocaleString()}}},scales:{x:{ticks:{font:{size:10},color:'#706858',maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false},border:{color:var_border}},y:{ticks:{font:{size:10},color:'#706858',callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(37,37,48,.8)'},border:{color:var_border}}}}
     });
   }
-
-  function renderPie(canvasId,legendId,filter){
-    const prev=canvasId==='chart-pie-exp'?pieExpChart:pieIncChart;if(prev){prev.destroy();}
-    const filtered=txs.filter(filter);
-    const map={};filtered.forEach(tx=>{map[tx.cat]=(map[tx.cat]||0)+tx.amount;});
-    const entries=Object.entries(map).sort((a,b)=>b[1]-a[1]);
-    const total=entries.reduce((s,[,v])=>s+v,0);
+  function renderPie(cid,lid,filter){
+    const prev=cid==='chart-pie-exp'?pieExpChart:pieIncChart;if(prev)prev.destroy();
+    const filtered=txs.filter(filter);const map={};filtered.forEach(tx=>{map[tx.cat]=(map[tx.cat]||0)+tx.amount;});
+    const entries=Object.entries(map).sort((a,b)=>b[1]-a[1]);const total=entries.reduce((s,[,v])=>s+v,0);
     const colors=entries.map((_,i)=>PIE_COLORS[i%PIE_COLORS.length]);
-    const legEl=document.getElementById(legendId);
-    if(!entries.length){
-      if(legEl)legEl.innerHTML=`<span style="font-size:12px;color:var(--text3)">—</span>`;
-      const c=new Chart(document.getElementById(canvasId).getContext('2d'),{type:'doughnut',data:{labels:['—'],datasets:[{data:[1],backgroundColor:['#2a2a3a']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
-      if(canvasId==='chart-pie-exp')pieExpChart=c;else pieIncChart=c;return;
-    }
-    if(legEl)legEl.innerHTML=entries.map(([name,v],i)=>`<div class="pie-row"><span class="ldot" style="background:${colors[i]}"></span><span style="flex:1">${name}</span><span style="color:var(--text3);margin-right:6px">${fmt(v)}</span><span style="color:var(--text3);min-width:36px;text-align:right">${((v/total)*100).toFixed(1)}%</span></div>`).join('');
-    const c=new Chart(document.getElementById(canvasId).getContext('2d'),{
-      type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>Math.round(e[1])),backgroundColor:colors,borderWidth:2,borderColor:'#16161f'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tooltip,callbacks:{label:c=>`${c.label}: NT$${c.raw.toLocaleString()} (${((c.raw/total)*100).toFixed(1)}%)`}}}}
-    });
-    if(canvasId==='chart-pie-exp')pieExpChart=c;else pieIncChart=c;
+    const legEl=document.getElementById(lid);
+    if(!entries.length){if(legEl)legEl.innerHTML=`<span style="font-size:12px;color:var(--text3)">—</span>`;const c=new Chart(document.getElementById(cid).getContext('2d'),{type:'doughnut',data:{labels:['—'],datasets:[{data:[1],backgroundColor:['#1e1e28']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});if(cid==='chart-pie-exp')pieExpChart=c;else pieIncChart=c;return;}
+    if(legEl)legEl.innerHTML=entries.map(([name,v],i)=>`<div class="pie-row"><span class="ldot" style="background:${colors[i]}"></span><span style="flex:1">${name}</span><span style="color:var(--text3);margin-right:5px">${fmt(v)}</span><span style="color:var(--text3);min-width:36px;text-align:right">${((v/total)*100).toFixed(1)}%</span></div>`).join('');
+    const c=new Chart(document.getElementById(cid).getContext('2d'),{type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>Math.round(e[1])),backgroundColor:colors,borderWidth:2,borderColor:'#111118'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tooltip,callbacks:{label:c=>`${c.label}: NT$${c.raw.toLocaleString()} (${((c.raw/total)*100).toFixed(1)}%)`}}}}});
+    if(cid==='chart-pie-exp')pieExpChart=c;else pieIncChart=c;
   }
   renderPie('chart-pie-exp','exp-pie-legend',tx=>tx.type==='expense');
   renderPie('chart-pie-inc','inc-pie-legend',tx=>tx.type==='income');
 }
+const var_border='#252530';
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
 
-// init
+// ── init ──────────────────────────────────────────────────────────────────────
 loadCache();
 lang=localStorage.getItem('fk_lang')||lang;
 ['zh-TW','zh-CN','en'].forEach(x=>document.getElementById('lang-'+x)?.classList.remove('on'));
@@ -1044,11 +889,19 @@ document.getElementById('ft-date').value=today();
 document.getElementById('xfr-date').value=today();
 document.getElementById('chart-start').value=new Date(curYear,curMonth,1).toISOString().slice(0,10);
 document.getElementById('chart-end').value=today();
-setSS('',t('notLoggedIn'));
+setSS('',T('notLoggedIn'));
 setType('expense');setAcctType('bank');
 document.querySelectorAll('.range-btn')[0].classList.add('on');
-render();
+applyLang();render();
 </script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<!-- Google Identity Services — handles silent token refresh automatically -->
+<script src="https://accounts.google.com/gsi/client" onload="
+  initGoogleAuth();
+  // Try silent sign-in on load (no prompt)
+  if(tokenClient){
+    tokenClient.requestAccessToken({prompt:''});
+  }
+" async defer></script>
 </body>
 </html>
