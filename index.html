@@ -506,17 +506,33 @@ function initGoogleAuth(){
     prompt:'',
     callback:async(resp)=>{
       if(resp.error){
-        if(resp.error==='interaction_required'||resp.error==='access_denied'){
+        if(resp.error==='interaction_required'||resp.error==='access_denied'||resp.error==='popup_closed_by_user'){
           showLoginScreen();return;
         }
         setSS('err',T('loginFail'));return;
       }
       accessToken=resp.access_token;
+      storeToken(resp.access_token, resp.expires_in||3600);
       const expiresIn=(resp.expires_in||3600)-300;
       setTimeout(()=>silentRefresh(),expiresIn*1000);
       await showMainApp();
     }
   });
+
+  // Try stored token first — fastest path, no network needed
+  const storedToken = loadStoredToken();
+  if(storedToken){
+    accessToken = storedToken;
+    // Refresh in background after showing app
+    showMainApp().then(()=>{
+      const expiresIn = (() => {
+        try{ const d=JSON.parse(localStorage.getItem('fk_token')||'{}'); return Math.max(0,d.expiry-Date.now())/1000-300; }catch(e){ return 0; }
+      })();
+      if(expiresIn > 60) setTimeout(()=>silentRefresh(), expiresIn*1000);
+      else silentRefresh();
+    });
+    return; // skip One Tap and silent request
+  }
 
   // Google One Tap — auto sign-in without user clicking anything
   google.accounts.id.initialize({
@@ -540,6 +556,26 @@ function initGoogleAuth(){
 function silentRefresh(){
   if(!tokenClient)return;
   tokenClient.requestAccessToken({prompt:''});
+}
+
+function storeToken(token, expiresIn){
+  const expiry = Date.now() + (expiresIn||3600)*1000;
+  try{ localStorage.setItem('fk_token', JSON.stringify({token, expiry})); }catch(e){}
+}
+
+function loadStoredToken(){
+  try{
+    const d = localStorage.getItem('fk_token');
+    if(!d) return null;
+    const {token, expiry} = JSON.parse(d);
+    // Valid if more than 2 minutes remaining
+    if(expiry - Date.now() > 120000) return token;
+    return null;
+  }catch(e){ return null; }
+}
+
+function clearStoredToken(){
+  try{ localStorage.removeItem('fk_token'); }catch(e){}
 }
 
 function signIn(){
@@ -577,7 +613,10 @@ function showLoginScreen(){
 
 function signOut(){
   if(accessToken)google.accounts.oauth2.revoke(accessToken);
-  accessToken=null;setSS('',T('notLoggedIn'));
+  accessToken=null;
+  clearStoredToken();
+  google.accounts.id.disableAutoSelect();
+  setSS('',T('notLoggedIn'));
   document.getElementById('login-btns').style.display='block';
   document.getElementById('logout-btns').style.display='none';
   showLoginScreen();
@@ -630,7 +669,19 @@ async function loadFromSheets(){
     // Don't fallback to cache here — keep whatever state we already have
   }
 }
-async function writeSheet(name,rows){await shReq('PUT','/values/'+encodeURIComponent(name+'!A2:Z')+'?valueInputOption=RAW',{range:name+'!A2:Z',values:rows.length?rows:[['']]});}
+async function writeSheet(name,rows){
+  const range=name+'!A2:Z';
+  const body={range, values:rows.length?rows:[['']]};
+  console.log('[writeSheet]',name,'rows:',rows.length);
+  try{
+    const result = await shReq('PUT','/values/'+encodeURIComponent(range)+'?valueInputOption=RAW',body);
+    console.log('[writeSheet]',name,'done, updatedRows:',result.updatedRows);
+    return result;
+  }catch(e){
+    console.error('[writeSheet] FAILED',name,e.message);
+    throw e;
+  }
+}
 async function syncAll(){
   if(!accessToken){setSS('err',T('notLoggedIn'));return;}
   if(syncing)return;
@@ -647,8 +698,13 @@ async function syncAll(){
     const nt=new Date();
     setSS('ok',`${T('synced')} ${String(nt.getHours()).padStart(2,'0')}:${String(nt.getMinutes()).padStart(2,'0')}`);
   }catch(e){
-    console.error('syncAll error:',e);
-    setSS('err',T('syncFail'));
+    console.error('[syncAll] FAILED:',e.message);
+    setSS('err','同步失敗: '+e.message);
+    // Token may be expired — try refresh then retry once
+    if(e.message&&(e.message.includes('401')||e.message.includes('403'))){
+      clearStoredToken();
+      silentRefresh();
+    }
   }
   syncing=false;
 }
@@ -826,9 +882,28 @@ function addAcct(){
   saveCache();render();syncAll();
 }
 function toggleConfirm(id){const tx=state.txs.find(x=>x.id===id);if(tx)tx.confirmed=!tx.confirmed;saveCache();render();syncAll();}
-async function delTx(id){if(!confirm('Delete?'))return;state.txs=state.txs.filter(x=>x.id!==id);saveCache();render();await syncAll();}
-async function delAcct(id){if(!confirm('Delete?'))return;state.accounts=state.accounts.filter(x=>x.id!==id);saveCache();render();await syncAll();}
-async function delInv(id){if(!confirm('Delete?'))return;state.investments=state.investments.filter(x=>x.id!==id);saveCache();render();await syncAll();}
+async function delTx(id){
+  if(!confirm('Delete?'))return;
+  state.txs=state.txs.filter(x=>x.id!==id);
+  saveCache();render();
+  await syncAll();
+  console.log('[delTx] after sync, tx count:',state.txs.length);
+}
+async function delAcct(id){
+  if(!confirm('Delete?'))return;
+  const name=state.accounts.find(x=>x.id===id)?.name||id;
+  state.accounts=state.accounts.filter(x=>x.id!==id);
+  saveCache();render();
+  console.log('[delAcct] deleting id='+id+' name='+name+', remaining:',state.accounts.length);
+  await syncAll();
+  console.log('[delAcct] sync done. Accounts in state:',state.accounts.map(a=>a.id+':'+a.name).join(', '));
+}
+async function delInv(id){
+  if(!confirm('Delete?'))return;
+  state.investments=state.investments.filter(x=>x.id!==id);
+  saveCache();render();
+  await syncAll();
+}
 function addCat(){
   const name=document.getElementById('nc-name').value.trim();const type=document.getElementById('nc-type').value;
   if(!name)return showE('ncerr',T('catName')+'?');
