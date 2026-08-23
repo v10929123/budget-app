@@ -570,6 +570,16 @@ input:checked+.toggle-slider:before{transform:translateX(20px)}
         <div class="ferr" id="ncerr"></div>
       </div>
       <div class="card">
+        <div class="card-title"><div class="dot"></div>顯示設定</div>
+        <div class="toggle-row">
+          <div>
+            <div style="font-size:13px;color:var(--text)">🙈 隱藏所有金額</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">隱藏總資產、銀行餘額、投資市值</div>
+          </div>
+          <label class="toggle-sw"><input type="checkbox" id="toggle-hide-amounts" onchange="setHideAmounts(this.checked)"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="card">
         <div class="card-title"><div class="dot"></div><span data-t="other">其他</span></div>
         <button class="btn-sm btn-del" onclick="clearLocal()" data-t="clearCache" style="margin-bottom:8px">清除本機快取</button><br>
         <button class="btn-sm" onclick="diagSync()" style="margin-top:6px;color:var(--gold2);border-color:var(--gold)">🔍 診斷同步問題</button>
@@ -791,14 +801,15 @@ let state={txs:[],accounts:[],investments:[],recurrings:[],cats:{expense:['餐�
 let budgets={}; // category→monthly budget amount, stored separately in localStorage
 let curYear=new Date().getFullYear(),curMonth=new Date().getMonth();
 let txType='expense',acctType='bank',invType='stock';
-let isOpt=false,isInst=false,hideBank=false,hideInv=false,hideTotal=false,analysisRange=7,chartRange='month',chartStart='',chartEnd='';
+let isOpt=false,isInst=false,hideBank=false,hideInv=false,hideTotal=false,hideAmounts=false,analysisRange=7,chartRange='month',chartStart='',chartEnd='';
+let ccEditId=null;
 let listRange='month',listStart='',listEnd='',listCatType='all',listSubCat='all';
 let barChart=null,pieExpChart=null,pieIncChart=null;
 let analysisCollapsed=false;
 let accessToken=null,syncing=false,tokenClient=null,lastSS='',lastSL='';
 
-function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,hideTotal,lang}));localStorage.setItem(BUDGETS_KEY,JSON.stringify(budgets));}catch(e){}}
-function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;if(!state.recurrings)state.recurrings=[];curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;hideTotal=p.hideTotal||false;lang=p.lang||lang;}const b=localStorage.getItem(BUDGETS_KEY);if(b)budgets=JSON.parse(b);}catch(e){}}
+function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,hideTotal,hideAmounts,lang}));localStorage.setItem(BUDGETS_KEY,JSON.stringify(budgets));}catch(e){}}
+function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;if(!state.recurrings)state.recurrings=[];curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;hideTotal=p.hideTotal||false;hideAmounts=p.hideAmounts||false;lang=p.lang||lang;}const b=localStorage.getItem(BUDGETS_KEY);if(b)budgets=JSON.parse(b);}catch(e){}}
 function clearStateKeepPrefs(){state={txs:[],accounts:[],investments:[],recurrings:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};}
 function clearLocal(){if(confirm(T('clearCache')+'?')){localStorage.removeItem(CACHE_KEY);localStorage.removeItem('fk_lang');location.reload();}}
 
@@ -1208,6 +1219,23 @@ function toggleHide(w){
     document.getElementById('eye-inv').textContent=hideTotal?'🙈':'👁';
   }
   saveCache();render();
+}
+function setHideAmounts(v){
+  hideAmounts=v;
+  if(hideAmounts){hideBank=true;hideInv=true;hideTotal=true;}
+  saveCache();render();
+  const chk=document.getElementById('toggle-hide-amounts');
+  if(chk)chk.checked=hideAmounts;
+}
+
+function saveCCEdit(id){
+  const cc=state.accounts.find(a=>a.id===id);if(!cc)return;
+  const dueEl=document.getElementById(`cc-edit-due-${id}`);
+  const bufEl=document.getElementById(`cc-edit-buf-${id}`);
+  if(dueEl){const v=parseInt(dueEl.value);if(!isNaN(v)&&v>=1&&v<=31)cc.dueDay=v;}
+  if(bufEl){const v=parseInt(bufEl.value);if(!isNaN(v)&&v>=0&&v<=27)cc.statementBuffer=v;}
+  ccEditId=null;
+  saveCache();syncAll();render();
 }
 
 function toggleAnalysis(){
@@ -1637,10 +1665,10 @@ function render(){
   document.getElementById('s-exp').textContent=fmt(exp);
   document.getElementById('s-bal').textContent=(bal<0?'-':'')+fmt(bal);
   document.getElementById('s-bal').className='sum-val'+(bal<0?' neg':bal>0?' pos':'');
-  document.getElementById('s-bank').textContent=(hideBank||hideTotal)?'••••':fmt(bankTotal);
+  document.getElementById('s-bank').textContent=(hideBank||hideTotal||hideAmounts)?'••••':fmt(bankTotal);
   document.getElementById('s-cc').textContent=fmt(ccSpend);
-  document.getElementById('s-inv').textContent=(hideInv||hideTotal)?'••••':fmt(invTotal);
-  document.getElementById('s-total').textContent=hideTotal?'••••':fmt(totalAssets);
+  document.getElementById('s-inv').textContent=(hideInv||hideTotal||hideAmounts)?'••••':fmt(invTotal);
+  document.getElementById('s-total').textContent=(hideTotal||hideAmounts)?'••••':fmt(totalAssets);
 
   // 本月收入 sub-labels: % of bank total, % of total assets
   const incVsBankPct=bankTotal>0?((inc/bankTotal)*100).toFixed(1):null;
@@ -1697,8 +1725,11 @@ function render(){
 
   // accounts
   const banks=state.accounts.filter(a=>a.type==='bank');const ccs=state.accounts.filter(a=>a.type==='cc');
-  document.getElementById('bank-list').innerHTML=banks.length?banks.map(a=>`<div class="acct-item"><span style="font-size:18px">🏦</span><div style="flex:1"><div class="acct-name">${a.name}</div></div><span style="font-size:13px;font-weight:700;color:var(--gold2)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`).join(''):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No bank accounts':'還沒有銀行帳戶'}</div>`;
-  document.getElementById('cc-list').innerHTML=ccs.length?ccs.map(a=>{const bank=state.accounts.find(b=>String(b.id)===String(a.debitBankId));const buf=a.statementBuffer!==undefined?a.statementBuffer:7;return`<div class="acct-item"><span style="font-size:18px">💳</span><div style="flex:1"><div class="acct-name">${a.name}</div>${a.dueDay?`<div class="acct-sub">${T('dueDay2')} ${a.dueDay} ${lang==='en'?'':'號'}${bank?` · ${bank.name}`:''} · ${lang==='en'?'buffer':'緩衝'} ${buf}${lang==='en'?'d':'天'}</div>`:''}</div><span style="font-size:13px;font-weight:700;color:var(--red)">${fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`;}).join(''):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No credit cards':'還沒有信用卡'}</div>`;
+  document.getElementById('bank-list').innerHTML=banks.length?banks.map(a=>`<div class="acct-item"><span style="font-size:18px">🏦</span><div style="flex:1"><div class="acct-name">${a.name}</div></div><span style="font-size:13px;font-weight:700;color:var(--gold2)">${hideAmounts?'••••':fmt(a.balance)}</span><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:7px">×</button></div>`).join(''):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No bank accounts':'還沒有銀行帳戶'}</div>`;
+  document.getElementById('cc-list').innerHTML=ccs.length?ccs.map(a=>{const bank=state.accounts.find(b=>String(b.id)===String(a.debitBankId));const buf=a.statementBuffer!==undefined?a.statementBuffer:7;const isEditing=ccEditId===a.id;return`<div><div class="acct-item"><span style="font-size:18px">💳</span><div style="flex:1"><div class="acct-name">${a.name}</div>${a.dueDay?`<div class="acct-sub">${T('dueDay2')} ${a.dueDay} ${lang==='en'?'':'號'}${bank?` · ${bank.name}`:''} · ${lang==='en'?'buffer':'緩衝'} ${buf}${lang==='en'?'d':'天'}</div>`:''}</div><span style="font-size:13px;font-weight:700;color:var(--red)">${hideAmounts?'••••':fmt(a.balance)}</span><button class="btn-sm" onclick="ccEditId=ccEditId===${a.id}?null:${a.id};render()" style="margin-left:5px;color:var(--gold);border-color:var(--gold);font-size:11px">✎</button><button class="btn-sm btn-del" onclick="delAcct(${a.id})" style="margin-left:5px">×</button></div>${isEditing?`<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px;margin-top:4px;display:flex;flex-direction:column;gap:7px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px"><div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">扣款日（號）</div><input type="number" id="cc-edit-due-${a.id}" value="${a.dueDay||''}" min="1" max="31" inputmode="numeric" style="width:100%;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text);font-size:13px"></div><div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">緩衝天數</div><input type="number" id="cc-edit-buf-${a.id}" value="${buf}" min="0" max="27" inputmode="numeric" style="width:100%;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text);font-size:13px"></div></div><button class="btn-primary" style="padding:6px;font-size:12px" onclick="saveCCEdit(${a.id})">儲存</button></div>`:''}`;}).join(''):`<div class="empty" style="padding:.5rem 0">${lang==='en'?'No credit cards':'還沒有信用卡'}</div>`;
+  // sync hideAmounts toggle
+  const haChk=document.getElementById('toggle-hide-amounts');
+  if(haChk)haChk.checked=hideAmounts;
 
   // investments
   const invT=state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
@@ -1771,16 +1802,23 @@ function renderBudgetOverview(){
   const cats=Object.keys(budgets);
   if(!cats.length){el.innerHTML='';return;}
   const mt=monthTxs();
+  const totalAssets=state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0)+state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
+  const assetPct=(amt)=>totalAssets>0?((amt/totalAssets)*100).toFixed(1)+'%':'—';
   const rows=cats.map(cat=>{
     const limit=budgets[cat];
     const spent=mt.filter(x=>x.type==='expense'&&x.cat===cat).reduce((s,x)=>s+x.amount,0);
     const pct=limit>0?Math.min(100,(spent/limit)*100):0;
+    const spentPct=limit>0?((spent/limit)*100).toFixed(0):'0';
     const over=spent>limit;const warn=pct>=80;
     const color=over?'var(--red)':warn?'var(--amber)':'var(--green)';
     return `<div class="budget-item" style="border-bottom:none;padding:6px 0">
       <div class="budget-header">
         <span class="budget-label">${cat}</span>
-        <span class="budget-amount ${over?'budget-over':warn?'budget-alert':''}">${fmt(spent)} / ${fmt(limit)}</span>
+        <span class="budget-amount ${over?'budget-over':warn?'budget-alert':''}">
+          <span>${fmt(spent)}<span style="font-size:10px;color:var(--text3)"> ${spentPct}%</span></span>
+          <span style="color:var(--text3)"> / </span>
+          <span>${fmt(limit)}<span style="font-size:10px;color:var(--text3)"> 資${assetPct(limit)}</span></span>
+        </span>
       </div>
       <div class="budget-bar"><div class="budget-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
     </div>`;
@@ -1794,18 +1832,25 @@ function renderBudgetSettings(){
   const sel=document.getElementById('budget-cat-sel');
   if(sel)sel.innerHTML=state.cats.expense.map(c=>`<option value="${c}">${c}</option>`).join('');
   const mt=monthTxs();
+  const totalAssets=state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0)+state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
+  const assetPct=(amt)=>totalAssets>0?((amt/totalAssets)*100).toFixed(1)+'%':'—';
   const cats=Object.keys(budgets);
   if(!cats.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0 10px">尚未設定任何預算</div>';return;}
   el.innerHTML=cats.map(cat=>{
     const limit=budgets[cat];
     const spent=mt.filter(x=>x.type==='expense'&&x.cat===cat).reduce((s,x)=>s+x.amount,0);
     const pct=limit>0?Math.min(100,(spent/limit)*100):0;
+    const spentPct=limit>0?((spent/limit)*100).toFixed(0):'0';
     const over=spent>limit;const warn=pct>=80;
     const color=over?'var(--red)':warn?'var(--amber)':'var(--green)';
     return `<div class="budget-item">
       <div class="budget-header">
         <span class="budget-label">${cat}</span>
-        <span class="budget-amount ${over?'budget-over':warn?'budget-alert':''}">${fmt(spent)} / ${fmt(limit)} (${pct.toFixed(0)}%)</span>
+        <span class="budget-amount ${over?'budget-over':warn?'budget-alert':''}">
+          <span>${fmt(spent)}<span style="font-size:10px;opacity:.8"> ${spentPct}%</span></span>
+          <span style="color:var(--text3)"> / </span>
+          <span>${fmt(limit)}<span style="font-size:10px;opacity:.7"> 資${assetPct(limit)}</span></span>
+        </span>
         <button class="btn-sm btn-del" onclick="delBudget('${cat}')" style="padding:3px 7px;font-size:11px">×</button>
       </div>
       <div class="budget-bar"><div class="budget-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
