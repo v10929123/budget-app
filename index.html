@@ -147,6 +147,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 /* ── charts ── */
 .chart-range-row{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
 .range-btn{padding:4px 10px;font-size:11px;border:1px solid var(--border2);border-radius:99px;background:var(--surface);cursor:pointer;color:var(--text3);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:5px 12px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:12px;color:var(--text2);cursor:pointer;white-space:nowrap}
+.chip.on{background:linear-gradient(135deg,#8a6a20,var(--gold));color:#000;border-color:var(--gold);font-weight:600}
 .range-btn.on{background:linear-gradient(135deg,#8a6a20,var(--gold));color:#000;border-color:var(--gold)}
 .chart-section{margin-bottom:12px}
 .chart-section-title{font-size:11px;color:var(--gold);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
@@ -543,28 +546,67 @@ async function updateInvestmentPrices(manual){
   if(cryptoInvs.length>0){
     const idsNeeded=[...new Set(cryptoInvs.map(guessCoinGeckoId).filter(Boolean))];
     if(idsNeeded.length>0){
+      const stillNeedsPrice=new Set(cryptoInvs.map(i=>i.id));
+
+      // Attempt 1: direct TWD pricing
       try{
         const url=`https://api.coingecko.com/api/v3/simple/price?ids=${idsNeeded.join(',')}&vs_currencies=twd`;
         const res=await fetch(url);
+        console.log('[prices] CoinGecko TWD status:',res.status);
         if(res.ok){
           const data=await res.json();
+          console.log('[prices] CoinGecko TWD data:',data);
           cryptoInvs.forEach(inv=>{
             const id=guessCoinGeckoId(inv);
             if(id && data[id] && data[id].twd){
               inv.curPrice=data[id].twd;
               updatedCount++;
-            } else {
-              failedCount++;
+              stillNeedsPrice.delete(inv.id);
             }
           });
         } else {
-          failedCount+=cryptoInvs.length;
+          console.warn('[prices] CoinGecko TWD request failed:',res.status,await res.text().catch(()=>''));
         }
       }catch(e){
-        console.error('[prices] CoinGecko fetch failed:',e);
-        failedCount+=cryptoInvs.length;
+        console.error('[prices] CoinGecko TWD fetch error:',e.message);
       }
+
+      // Attempt 2: fallback via USD price + live USD→TWD exchange rate for anything still missing
+      if(stillNeedsPrice.size>0){
+        const remaining=cryptoInvs.filter(i=>stillNeedsPrice.has(i.id));
+        const remainingIds=[...new Set(remaining.map(guessCoinGeckoId).filter(Boolean))];
+        try{
+          const [priceRes,fxRes]=await Promise.all([
+            fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${remainingIds.join(',')}&vs_currencies=usd`),
+            fetch('https://open.er-api.com/v6/latest/USD'),
+          ]);
+          console.log('[prices] CoinGecko USD status:',priceRes.status,'FX status:',fxRes.status);
+          if(priceRes.ok && fxRes.ok){
+            const priceData=await priceRes.json();
+            const fxData=await fxRes.json();
+            const usdToTwd=fxData && fxData.rates && fxData.rates.TWD;
+            console.log('[prices] USD price data:',priceData,'USD→TWD rate:',usdToTwd);
+            if(usdToTwd){
+              remaining.forEach(inv=>{
+                const id=guessCoinGeckoId(inv);
+                if(id && priceData[id] && priceData[id].usd){
+                  inv.curPrice=Math.round(priceData[id].usd*usdToTwd*100)/100;
+                  updatedCount++;
+                  stillNeedsPrice.delete(inv.id);
+                }
+              });
+            }
+          } else {
+            console.warn('[prices] USD or FX request failed:',priceRes.status,fxRes.status);
+          }
+        }catch(e){
+          console.error('[prices] USD+FX fallback failed:',e.message);
+        }
+      }
+
+      failedCount+=stillNeedsPrice.size;
     } else {
+      console.warn('[prices] No CoinGecko id could be matched for crypto tickers:',cryptoInvs.map(i=>i.ticker||i.name));
       failedCount+=cryptoInvs.length;
     }
   }
@@ -1215,8 +1257,23 @@ function editInvPrice(id){
   if(val===null)return;
   const num=parseFloat(val);
   if(isNaN(num)||num<0)return;
-  inv.curPrice=num;
+  // Apply to every investment with the same ticker (or name, if no ticker) and same type,
+  // so all lots of e.g. USDT update together.
+  const key=(inv.ticker||inv.name||'').trim().toLowerCase();
+  let count=0;
+  state.investments.forEach(x=>{
+    const xKey=(x.ticker||x.name||'').trim().toLowerCase();
+    if(x.invType===inv.invType && xKey===key){
+      x.curPrice=num;
+      count++;
+    }
+  });
   saveCache();render();syncAll();
+  if(count>1){
+    const msg=lang==='en'?`Updated ${count} entries for ${inv.name}`:`已同步更新 ${count} 筆 ${inv.name} 的市價`;
+    const statusEl=document.getElementById('price-update-status');
+    if(statusEl){ statusEl.textContent=msg; setTimeout(()=>{statusEl.textContent='';},4000); }
+  }
 }
 function addCat(){
   const name=document.getElementById('nc-name').value.trim();const type=document.getElementById('nc-type').value;
