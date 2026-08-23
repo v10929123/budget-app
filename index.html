@@ -524,8 +524,20 @@ const COINGECKO_ID_MAP={
 function guessCoinGeckoId(inv){
   const t=(inv.ticker||'').trim().toUpperCase();
   if(t&&COINGECKO_ID_MAP[t])return COINGECKO_ID_MAP[t];
+  // Also check the NAME field against the ticker map — covers the common case
+  // where someone typed "USDT"/"BTC" etc into the name box instead of ticker.
+  const nUpper=(inv.name||'').trim().toUpperCase();
+  if(nUpper&&COINGECKO_ID_MAP[nUpper])return COINGECKO_ID_MAP[nUpper];
   const n=(inv.name||'').trim().toLowerCase();
-  const nameMap={bitcoin:'bitcoin',ethereum:'ethereum',比特幣:'bitcoin',以太幣:'ethereum','以太坊':'ethereum'};
+  const nameMap={
+    bitcoin:'bitcoin',ethereum:'ethereum',tether:'tether','usd coin':'tether',
+    usdc:'tether',binancecoin:'binancecoin','binance coin':'binancecoin',
+    solana:'solana',ripple:'ripple',cardano:'cardano',dogecoin:'dogecoin',
+    polkadot:'polkadot',litecoin:'litecoin',avalanche:'avalanche-2',
+    chainlink:'chainlink',tron:'tron','shiba inu':'shiba-inu',uniswap:'uniswap',
+    cosmos:'cosmos',stellar:'stellar',比特幣:'bitcoin',以太幣:'ethereum','以太坊':'ethereum',
+    泰達幣:'tether','泰達币':'tether',
+  };
   if(nameMap[n])return nameMap[n];
   return null;
 }
