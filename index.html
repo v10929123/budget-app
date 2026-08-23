@@ -182,6 +182,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 
 /* ── gold divider ── */
 .gold-line{height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.3),transparent);margin:4px 0 10px}
+
+/* ── search ── */
+.search-wrap{margin-bottom:10px;position:relative}
+.search-input{width:100%;padding:8px 10px 8px 34px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;-webkit-appearance:none;appearance:none}
+.search-input:focus{outline:none;border-color:var(--gold)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+
+/* ── budget ── */
+.budget-item{display:flex;flex-direction:column;gap:4px;padding:9px 0;border-bottom:1px solid var(--border)}
+.budget-item:last-child{border-bottom:none}
+.budget-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.budget-label{font-size:13px;color:var(--text);font-weight:500}
+.budget-amount{font-size:12px;color:var(--text3);white-space:nowrap}
+.budget-bar{height:5px;border-radius:3px;background:var(--bg3);overflow:hidden}
+.budget-fill{height:100%;border-radius:3px;transition:width .4s}
+.budget-alert{color:var(--amber)!important}
+.budget-over{color:var(--red)!important}
+
+/* ── toggle switch ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-sw{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle-sw input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:99px;transition:.3s}
+.toggle-slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+input:checked+.toggle-slider{background:var(--gold)}
+input:checked+.toggle-slider:before{transform:translateX(20px)}
+
+/* ── recurring ── */
+.rec-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 10px;margin-bottom:5px}
+.rec-info{flex:1;min-width:0}
+.rec-name{font-size:13px;font-weight:500;color:var(--text)}
+.rec-meta{font-size:10px;color:var(--text3);margin-top:2px}
 </style>
 </head>
 <body>
@@ -237,8 +270,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
         <div class="sum-card c-inv"><div class="sum-label"><span data-t="invTotal">投資總市值</span><button class="eye-btn" onclick="toggleHide('inv')" id="eye-inv">👁</button></div><div class="sum-val pur" id="s-inv">NT$0</div></div>
       </div>
 
+      <div id="budget-overview"></div>
+
       <div class="analysis-card">
         <div class="analysis-title">📊 <span data-t="analysis">消費分析</span></div>
+        <div id="budget-alerts"></div>
         <div id="today-summary" style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)"></div>
         <div class="range-tabs">
           <button class="rtab on" onclick="setAR(7,this)" data-t="d7">7天</button>
@@ -350,6 +386,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
         <button class="range-btn" onclick="setListCat('transfer',this)" data-t="transfer">轉帳</button>
       </div>
       <div class="chips" id="list-subcat-filters" style="margin-bottom:10px"></div>
+
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="list-search" placeholder="搜尋備註、分類、金額..." oninput="render()">
+      </div>
 
       <div class="tx-list" id="tx-list"><div class="empty" data-t="noRecord">本月還沒有記錄</div></div>
     </div>
@@ -465,6 +506,65 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
         <button class="btn-primary" onclick="addCat()">＋ <span data-t="add">新增</span></button>
         <div class="ferr" id="ncerr"></div>
       </div>
+      <!-- 預算管理 -->
+      <div class="card">
+        <div class="card-title"><div class="dot"></div><span>📊 預算管理</span></div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px">設定各支出分類的月預算上限，超過 80% 時顯示警示</p>
+        <div id="budget-settings-list"></div>
+        <div style="margin-top:10px;display:flex;gap:7px;align-items:flex-end">
+          <div class="fg" style="flex:1;margin-bottom:0">
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">分類</label>
+            <select id="budget-cat-sel" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none"></select>
+          </div>
+          <div class="fg" style="flex:1;margin-bottom:0">
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">月預算金額</label>
+            <input type="number" id="budget-amt-inp" inputmode="decimal" placeholder="0" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+          </div>
+          <button class="btn-sm" onclick="setBudget()" style="color:var(--gold2);border-color:var(--gold);height:36px;white-space:nowrap">設定</button>
+        </div>
+      </div>
+
+      <!-- 定期交易 -->
+      <div class="card">
+        <div class="card-title"><div class="dot"></div><span>🔄 定期交易</span></div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px">固定支出自動產生（訂閱、房租…），可暫停或刪除</p>
+        <div id="recurring-list"></div>
+        <div style="margin-top:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">名稱</label>
+              <input type="text" id="rec-name" placeholder="Netflix 訂閱" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+            </div>
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">金額</label>
+              <input type="number" id="rec-amt" inputmode="decimal" placeholder="0" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">分類</label>
+              <select id="rec-cat" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none"></select>
+            </div>
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">每隔幾天</label>
+              <input type="number" id="rec-days" value="30" inputmode="numeric" min="1" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">帳戶（選填）</label>
+              <select id="rec-source" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none"></select>
+            </div>
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">首次執行日</label>
+              <input type="date" id="rec-start" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+            </div>
+          </div>
+          <button class="btn-primary" onclick="addRecurring()">＋ 新增定期交易</button>
+          <div class="ferr" id="recerr"></div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title"><div class="dot"></div><span data-t="other">其他</span></div>
         <button class="btn-sm btn-del" onclick="clearLocal()" data-t="clearCache" style="margin-bottom:8px">清除本機快取</button><br>
@@ -504,8 +604,9 @@ document.addEventListener('click',e=>{if(!e.target.closest('.lang-menu')&&!e.tar
 // ── state ─────────────────────────────────────────────────────────────────────
 const CLIENT_ID='909890286177-sfld5lrhrq2kibq324fkcpv6laq88v61.apps.googleusercontent.com';
 const SHEET_ID='17cmUl6R7vtKmMP3fVm6bQPK8uLB7sj5UAX_ZyJo2ftY';
-const APP_VERSION='v1.1.0';
+const APP_VERSION='v1.2.0';
 const CACHE_KEY='fk_v5';
+const BUDGETS_KEY='fk_budgets';
 const PIE_COLORS=['#c9a84c','#ff4d6d','#00d68f','#4d9fff','#a78bfa','#22d3ee','#fb923c','#f472b6'];
 const ICONS={餐飲:'🍜',交通:'🚌',購物:'🛍️',娛樂:'🎮',居住:'🏠',醫療:'💊',薪資:'💼',獎金:'🎁',副業:'💡',投資:'📈',其他:'📋',轉帳:'🔄',健身:'🏋️',旅遊:'✈️',教育:'📚',Bitcoin:'₿',Ethereum:'⟠',加密貨幣:'🪙'};
 const MN_ZH=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
@@ -682,7 +783,8 @@ function renderTodayDate(){
   }
 }
 
-let state={txs:[],accounts:[],investments:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};
+let state={txs:[],accounts:[],investments:[],recurrings:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};
+let budgets={}; // category→monthly budget amount, stored separately in localStorage
 let curYear=new Date().getFullYear(),curMonth=new Date().getMonth();
 let txType='expense',acctType='bank',invType='stock';
 let isOpt=false,isInst=false,hideBank=false,hideInv=false,hideTotal=false,analysisRange=7,chartRange='month',chartStart='',chartEnd='';
@@ -690,9 +792,9 @@ let listRange='month',listStart='',listEnd='',listCatType='all',listSubCat='all'
 let barChart=null,pieExpChart=null,pieIncChart=null;
 let accessToken=null,syncing=false,tokenClient=null,lastSS='',lastSL='';
 
-function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,hideTotal,lang}));}catch(e){}}
-function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;hideTotal=p.hideTotal||false;lang=p.lang||lang;}}catch(e){}}
-function clearStateKeepPrefs(){state={txs:[],accounts:[],investments:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};}
+function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,hideTotal,lang}));localStorage.setItem(BUDGETS_KEY,JSON.stringify(budgets));}catch(e){}}
+function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;if(!state.recurrings)state.recurrings=[];curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;hideTotal=p.hideTotal||false;lang=p.lang||lang;}const b=localStorage.getItem(BUDGETS_KEY);if(b)budgets=JSON.parse(b);}catch(e){}}
+function clearStateKeepPrefs(){state={txs:[],accounts:[],investments:[],recurrings:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};}
 function clearLocal(){if(confirm(T('clearCache')+'?')){localStorage.removeItem(CACHE_KEY);localStorage.removeItem('fk_lang');location.reload();}}
 
 async function diagSync(){
@@ -880,6 +982,7 @@ async function showMainApp(){
   setSS('loading',T('loading'));
   await ensureSheets();
   await loadFromSheets();
+  processRecurrings();
   render();
   checkCCAutoPay();
   updateInvestmentPrices(false); // auto-refresh market prices on open (fire-and-forget)
@@ -913,10 +1016,10 @@ async function ensureSheets(){
   try{
     const info=await shReq('GET','');
     const existing=info.sheets.map(s=>s.properties.title);
-    const needed=['Transactions','Accounts','Investments','Categories'].filter(s=>!existing.includes(s));
+    const needed=['Transactions','Accounts','Investments','Categories','Recurrings'].filter(s=>!existing.includes(s));
     if(needed.length){
       await shReq('POST',':batchUpdate',{requests:needed.map(title=>({addSheet:{properties:{title}}}))});
-      const headers={Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name']};
+      const headers={Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name'],Recurrings:['id','name','amount','cat','source','intervalDays','nextDate','active','note']};
       await shReq('POST','/values:batchUpdate',{valueInputOption:'RAW',data:needed.map(s=>({range:`${s}!A1`,values:[headers[s]]}))});
     }
   }catch(e){setSS('err',T('initFail'));}
@@ -926,7 +1029,6 @@ async function loadFromSheets(){
   try{
     const res=await shReq('GET','/values:batchGet?ranges='+['Transactions!A2:Z','Accounts!A2:Z','Investments!A2:Z','Categories!A2:Z'].map(encodeURIComponent).join('&ranges='));
     const vr=res.valueRanges;
-    // Completely replace state with Sheets data — never merge with cache
     let autoId=1000;
     const parseId=v=>{const n=parseInt(v);return(!isNaN(n)&&n>0)?n:null;};
     const newTxs=(vr[0]?.values||[]).filter(r=>r&&r.length>=3).map(r=>({id:parseId(r[0])||(autoId++),type:r[1]||'expense',amount:parseFloat(r[2])||0,cat:r[3]||'',note:r[4]||'',date:r[5]||today(),source:r[6]||'',optional:r[7]==='true',confirmed:r[8]==='true',installGroup:r[9]||'',installIndex:parseInt(r[10])||0,installTotal:parseInt(r[11])||0}));
@@ -935,11 +1037,13 @@ async function loadFromSheets(){
     const catRows=vr[3]?.values||[];
     const newCats=catRows.length?{expense:[],income:[]}:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']};
     if(catRows.length)catRows.forEach(r=>{if(r[0]==='expense'||r[0]==='income')newCats[r[0]].push(r[1]||'');});
-    state.txs=newTxs;
-    state.accounts=newAccts;
-    state.investments=newInvs;
-    state.cats=newCats;
-    const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id)];
+    state.txs=newTxs;state.accounts=newAccts;state.investments=newInvs;state.cats=newCats;
+    // load Recurrings (new sheet — silent fail on first upgrade)
+    try{
+      const rRes=await shReq('GET','/values/'+encodeURIComponent('Recurrings!A2:Z'));
+      state.recurrings=(rRes.values||[]).filter(r=>r&&r.length>=2).map(r=>({id:parseId(r[0])||(autoId++),name:r[1]||'',amount:parseFloat(r[2])||0,cat:r[3]||'',source:r[4]||'',intervalDays:parseInt(r[5])||30,nextDate:r[6]||today(),active:r[7]!=='false',note:r[8]||''}));
+    }catch(e2){state.recurrings=state.recurrings||[];console.warn('[loadFromSheets] Recurrings not yet created:',e2.message);}
+    const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id),...state.recurrings.map(x=>x.id)];
     state.nextId=allIds.length>0?Math.max(...allIds)+1:1;
     saveCache();
     const now=new Date();
@@ -947,7 +1051,6 @@ async function loadFromSheets(){
   }catch(e){
     console.error('loadFromSheets error:',e);
     setSS('err',T('syncFail')+': '+e.message);
-    // Don't fallback to cache here — keep whatever state we already have
   }
 }
 async function writeSheet(name,rows){
@@ -961,7 +1064,8 @@ async function writeSheet(name,rows){
       Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],
       Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],
       Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],
-      Categories:['type','name']
+      Categories:['type','name'],
+      Recurrings:['id','name','amount','cat','source','intervalDays','nextDate','active','note']
     };
     const allRows=[headers[name]||[],...rows];
     const writeRange=name+'!A1';
@@ -983,7 +1087,8 @@ async function syncAll(){
       writeSheet('Transactions',state.txs.map(x=>[x.id,x.type,x.amount,x.cat,x.note,x.date,x.source||'',String(x.optional||false),String(x.confirmed||false),x.installGroup||'',x.installIndex||0,x.installTotal||0])),
       writeSheet('Accounts',state.accounts.map(x=>[x.id,x.type,x.name,x.balance,x.dueDay||'',x.debitBankId||'',x.statementBuffer!==undefined?x.statementBuffer:7])),
       writeSheet('Investments',state.investments.map(x=>[x.id,x.invType||'stock',x.name,x.ticker,x.price,x.shares,x.curPrice,x.date,x.source||''])),
-      writeSheet('Categories',[...state.cats.expense.map(c=>['expense',c]),...state.cats.income.map(c=>['income',c])])
+      writeSheet('Categories',[...state.cats.expense.map(c=>['expense',c]),...state.cats.income.map(c=>['income',c])]),
+      writeSheet('Recurrings',(state.recurrings||[]).map(x=>[x.id,x.name,x.amount,x.cat,x.source||'',x.intervalDays||30,x.nextDate||today(),String(x.active!==false),x.note||'']))
     ]);
     saveCache();
     const nt=new Date();
@@ -1347,6 +1452,23 @@ function renderTodaySummary(){
   `;
 }
 
+function renderBudgetAlerts(){
+  // show budget alert bars in the analysis card when any category exceeds 80%
+  const mt=monthTxs();
+  const alerts=Object.entries(budgets).filter(([cat,limit])=>{
+    const spent=mt.filter(x=>x.type==='expense'&&x.cat===cat).reduce((s,x)=>s+x.amount,0);
+    return limit>0&&spent/limit>=0.8;
+  }).map(([cat,limit])=>{
+    const spent=mt.filter(x=>x.type==='expense'&&x.cat===cat).reduce((s,x)=>s+x.amount,0);
+    const pct=((spent/limit)*100).toFixed(0);
+    const over=spent>limit;
+    return `<div class="alert-bar" style="${over?'background:rgba(255,77,109,.1);border-color:rgba(255,77,109,.4);color:var(--red)':''}">
+      ${over?'🔴':'⚠️'} <strong>${cat}</strong> 本月已花 ${fmt(spent)} / 預算 ${fmt(limit)} (${pct}%)
+    </div>`;
+  }).join('');
+  const alertsEl=document.getElementById('budget-alerts');
+  if(alertsEl)alertsEl.innerHTML=alerts;
+}
 function renderAnalysis(){
   const now=new Date();
   let txs;
@@ -1463,6 +1585,10 @@ function getListTxs(){
       txs=txs.filter(tx=>tx.cat===listSubCat);
     }
   }
+  // search filter
+  const searchEl=document.getElementById('list-search');
+  const q=(searchEl?.value||'').trim().toLowerCase();
+  if(q){txs=txs.filter(tx=>(tx.note||'').toLowerCase().includes(q)||(tx.cat||'').toLowerCase().includes(q)||String(tx.amount).includes(q));}
   return txs.slice().sort((a,b)=>b.date.localeCompare(a.date));
 }
 function renderListSubcatFilters(){
@@ -1571,6 +1697,12 @@ function render(){
   document.getElementById('exp-cats').innerHTML=state.cats.expense.map(c=>`<span style="${chipStyle}">${c}<span onclick="delCat('expense','${c}')" style="color:var(--red);cursor:pointer;font-size:13px">×</span></span>`).join('');
   document.getElementById('inc-cats').innerHTML=state.cats.income.map(c=>`<span style="${chipStyle}">${c}<span onclick="delCat('income','${c}')" style="color:var(--red);cursor:pointer;font-size:13px">×</span></span>`).join('');
 
+  // new feature renders
+  renderBudgetOverview();
+  renderBudgetSettings();
+  renderRecurringList();
+  renderBudgetAlerts();
+
   refreshSelects();renderCharts(getChartTxs());
 }
 
@@ -1601,6 +1733,135 @@ function renderCharts(txs){
 }
 const var_border='#252530';
 
+// ── Budget management ──────────────────────────────────────────────────────────
+function setBudget(){
+  const cat=document.getElementById('budget-cat-sel').value;
+  const amt=parseFloat(document.getElementById('budget-amt-inp').value);
+  if(!cat||isNaN(amt)||amt<0)return;
+  if(amt===0){delete budgets[cat];}else{budgets[cat]=amt;}
+  document.getElementById('budget-amt-inp').value='';
+  saveCache();render();
+}
+function delBudget(cat){
+  delete budgets[cat];
+  saveCache();render();
+}
+function renderBudgetOverview(){
+  const el=document.getElementById('budget-overview');
+  if(!el)return;
+  const cats=Object.keys(budgets);
+  if(!cats.length){el.innerHTML='';return;}
+  const mt=monthTxs();
+  const rows=cats.map(cat=>{
+    const limit=budgets[cat];
+    const spent=mt.filter(x=>x.type==='expense'&&x.cat===cat).reduce((s,x)=>s+x.amount,0);
+    const pct=limit>0?Math.min(100,(spent/limit)*100):0;
+    const over=spent>limit;const warn=pct>=80;
+    const color=over?'var(--red)':warn?'var(--amber)':'var(--green)';
+    return `<div class="budget-item" style="border-bottom:none;padding:6px 0">
+      <div class="budget-header">
+        <span class="budget-label">${cat}</span>
+        <span class="budget-amount ${over?'budget-over':warn?'budget-alert':''}">${fmt(spent)} / ${fmt(limit)}</span>
+      </div>
+      <div class="budget-bar"><div class="budget-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+  el.innerHTML=`<div class="card" style="padding:11px 13px;margin-bottom:11px"><div class="card-title" style="margin-bottom:8px"><div class="dot"></div>本月預算</div>${rows}</div>`;
+}
+function renderBudgetSettings(){
+  const el=document.getElementById('budget-settings-list');
+  if(!el)return;
+  const mt=monthTxs();
+  const cats=Object.keys(budgets);
+  if(!cats.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0 10px">尚未設定任何預算</div>';return;}
+  el.innerHTML=cats.map(cat=>{
+    const limit=budgets[cat];
+    const spent=mt.filter(x=>x.type==='expense'&&x.cat===cat).reduce((s,x)=>s+x.amount,0);
+    const pct=limit>0?Math.min(100,(spent/limit)*100):0;
+    const over=spent>limit;const warn=pct>=80;
+    const color=over?'var(--red)':warn?'var(--amber)':'var(--green)';
+    return `<div class="budget-item">
+      <div class="budget-header">
+        <span class="budget-label">${cat}</span>
+        <span class="budget-amount ${over?'budget-over':warn?'budget-alert':''}">${fmt(spent)} / ${fmt(limit)} (${pct.toFixed(0)}%)</span>
+        <button class="btn-sm btn-del" onclick="delBudget('${cat}')" style="padding:3px 7px;font-size:11px">×</button>
+      </div>
+      <div class="budget-bar"><div class="budget-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+  // populate cat select
+  const sel=document.getElementById('budget-cat-sel');
+  if(sel)sel.innerHTML=state.cats.expense.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+// ── Recurring transactions ─────────────────────────────────────────────────────
+function processRecurrings(){
+  if(!state.recurrings||!state.recurrings.length)return;
+  const todayStr=today();
+  let changed=false;
+  state.recurrings.filter(r=>r.active!==false).forEach(r=>{
+    while(r.nextDate<=todayStr){
+      // create transaction
+      const id=safeNextId();
+      state.txs.unshift({id,type:'expense',amount:r.amount,cat:r.cat,note:r.name+(r.note?` (${r.note})`:''),date:r.nextDate,source:r.source||'',optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
+      if(r.source){const ac=state.accounts.find(x=>String(x.id)===r.source);if(ac)ac.balance=Math.round((ac.balance-r.amount)*100)/100;}
+      // advance nextDate
+      const d=new Date(r.nextDate);d.setDate(d.getDate()+(r.intervalDays||30));
+      r.nextDate=d.toISOString().slice(0,10);
+      changed=true;
+    }
+  });
+  if(changed){saveCache();syncAll();}
+}
+function addRecurring(){
+  const name=document.getElementById('rec-name').value.trim();
+  if(!name)return showE('recerr','請輸入名稱');
+  const amt=parseFloat(document.getElementById('rec-amt').value);
+  if(!amt||amt<=0)return showE('recerr','請輸入金額');
+  const cat=document.getElementById('rec-cat').value||state.cats.expense[0]||'其他';
+  const days=parseInt(document.getElementById('rec-days').value)||30;
+  const source=document.getElementById('rec-source').value||'';
+  const startDate=document.getElementById('rec-start').value||today();
+  if(!state.recurrings)state.recurrings=[];
+  state.recurrings.push({id:safeNextId(),name,amount:amt,cat,source,intervalDays:days,nextDate:startDate,active:true,note:''});
+  document.getElementById('rec-name').value='';document.getElementById('rec-amt').value='';document.getElementById('rec-days').value='30';
+  clearE('recerr');saveCache();syncAll();render();
+}
+function toggleRecurring(id){
+  const r=state.recurrings.find(x=>x.id===id);
+  if(r){r.active=!r.active;saveCache();syncAll();render();}
+}
+function delRecurring(id){
+  if(!confirm('確定刪除此定期交易？'))return;
+  state.recurrings=state.recurrings.filter(x=>x.id!==id);
+  saveCache();syncAll();render();
+}
+function renderRecurringList(){
+  const el=document.getElementById('recurring-list');
+  if(!el)return;
+  // populate selects
+  const catSel=document.getElementById('rec-cat');
+  if(catSel)catSel.innerHTML=state.cats.expense.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const srcSel=document.getElementById('rec-source');
+  if(srcSel)srcSel.innerHTML=`<option value="">不指定</option>`+state.accounts.map(a=>`<option value="${a.id}">${a.type==='cc'?'💳':'🏦'} ${a.name}</option>`).join('');
+  if(!state.recurrings||!state.recurrings.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0 10px">尚未設定定期交易</div>';return;}
+  el.innerHTML=state.recurrings.map(r=>{
+    const ac=r.source?state.accounts.find(a=>String(a.id)===r.source):null;
+    const srcName=ac?` · ${ac.name}`:'';
+    return `<div class="rec-item${r.active===false?' debt-paid':''}">
+      <div class="rec-info">
+        <div class="rec-name">${r.name}</div>
+        <div class="rec-meta">${r.cat} · 每${r.intervalDays}天 · ${fmt(r.amount)}${srcName} · 下次 ${r.nextDate}</div>
+      </div>
+      <label class="toggle-sw" title="${r.active===false?'已暫停':'執行中'}">
+        <input type="checkbox" ${r.active!==false?'checked':''} onchange="toggleRecurring(${r.id})">
+        <span class="toggle-slider"></span>
+      </label>
+      <button class="btn-sm btn-del" onclick="delRecurring(${r.id})" style="margin-left:6px">×</button>
+    </div>`;
+  }).join('');
+}
+
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
 
 // ── init ──────────────────────────────────────────────────────────────────────
@@ -1613,6 +1874,7 @@ document.getElementById('f-date').value=today();
 document.getElementById('fi-date').value=today();
 document.getElementById('ft-date').value=today();
 document.getElementById('xfr-date').value=today();
+document.getElementById('rec-start').value=today();
 document.getElementById('chart-start').value=new Date(curYear,curMonth,1).toISOString().slice(0,10);
 document.getElementById('chart-end').value=today();
 setSS('',T('notLoggedIn'));
