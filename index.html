@@ -1734,12 +1734,13 @@ function render(){
   // investments
   const invT=state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
   const invC=state.investments.reduce((s,i)=>s+i.price*i.shares,0);const invG=invT-invC;
-  document.getElementById('inv-total-val').textContent=fmt(invT);
-  const gEl=document.getElementById('inv-total-gain');gEl.textContent=(invG>=0?'+':'')+fmt(invG);gEl.className='sum-val '+(invG>=0?'pos':'neg');
+  document.getElementById('inv-total-val').textContent=hideAmounts?'••••':fmt(invT);
+  const gEl=document.getElementById('inv-total-gain');gEl.textContent=hideAmounts?'••••':(invG>=0?'+':'')+fmt(invG);gEl.className='sum-val '+(invG>=0?'pos':'neg');
   document.getElementById('inv-list').innerHTML=state.investments.length?state.investments.map(i=>{
     const cost=i.price*i.shares,val=i.curPrice*i.shares,gain=val-cost;
     const pct=cost>0?((gain/cost)*100).toFixed(1):'0.0';const gcls=gain>=0?'pos':'neg',gs=gain>=0?'+':'';
-    return `<div class="acct-item" style="align-items:flex-start"><span style="font-size:18px;margin-top:2px">${i.invType==='crypto'?'🪙':'📊'}</span><div style="flex:1;min-width:0"><div class="acct-name">${i.name}${i.ticker?` <span style="font-size:10px;color:var(--text3)">${i.ticker}</span>`:''}</div><div class="acct-sub ${gcls}">${gs}${fmt(gain)} (${gs}${pct}%) · ${i.shares}${i.invType==='crypto'?'枚':'股'}</div><div class="acct-sub" style="cursor:pointer;text-decoration:underline dotted" onclick="editInvPrice(${i.id})">${lang==='en'?'Price':'市價'} ${fmt(i.curPrice)} ✎</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:700;color:var(--purple)">${fmt(val)}</div><div class="acct-sub">${fmt(cost)}</div></div><button class="btn-sm btn-del" onclick="delInv(${i.id})" style="margin-left:7px;flex-shrink:0">×</button></div>`;
+    const h='••••';
+    return `<div class="acct-item" style="align-items:flex-start"><span style="font-size:18px;margin-top:2px">${i.invType==='crypto'?'🪙':'📊'}</span><div style="flex:1;min-width:0"><div class="acct-name">${i.name}${i.ticker?` <span style="font-size:10px;color:var(--text3)">${i.ticker}</span>`:''}</div><div class="acct-sub ${gcls}">${hideAmounts?h:`${gs}${fmt(gain)} (${gs}${pct}%)`} · ${i.shares}${i.invType==='crypto'?'枚':'股'}</div><div class="acct-sub" style="cursor:pointer;text-decoration:underline dotted" onclick="editInvPrice(${i.id})">${lang==='en'?'Price':'市價'} ${hideAmounts?h:fmt(i.curPrice)} ✎</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:700;color:var(--purple)">${hideAmounts?h:fmt(val)}</div><div class="acct-sub">${hideAmounts?h:fmt(cost)}</div></div><button class="btn-sm btn-del" onclick="delInv(${i.id})" style="margin-left:7px;flex-shrink:0">×</button></div>`;
   }).join(''):`<div class="empty">${T('noInvest')}</div>`;
 
   // cat settings — 全部都可刪
