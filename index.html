@@ -133,7 +133,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
 
 /* ── analysis ── */
 .analysis-card{background:var(--surface);border:1px solid rgba(201,168,76,.2);border-radius:var(--r);padding:13px;margin-bottom:11px}
-.analysis-title{font-size:13px;font-weight:600;color:var(--gold2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.analysis-title{font-size:13px;font-weight:600;color:var(--gold2);margin-bottom:10px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.analysis-body{overflow:hidden;transition:max-height .3s ease,opacity .3s ease;max-height:2000px;opacity:1}
+.analysis-body.collapsed{max-height:0;opacity:0}
 .range-tabs{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
 .rtab{padding:4px 10px;font-size:11px;border:1px solid var(--border2);border-radius:99px;background:var(--bg3);cursor:pointer;color:var(--text3);font-weight:500}
 .rtab.on{background:linear-gradient(135deg,#8a6a20,var(--gold));color:#000;border-color:var(--gold)}
@@ -273,16 +275,18 @@ input:checked+.toggle-slider:before{transform:translateX(20px)}
       <div id="budget-overview"></div>
 
       <div class="analysis-card">
-        <div class="analysis-title">📊 <span data-t="analysis">消費分析</span></div>
-        <div id="budget-alerts"></div>
-        <div id="today-summary" style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)"></div>
-        <div class="range-tabs">
-          <button class="rtab on" onclick="setAR(7,this)" data-t="d7">7天</button>
-          <button class="rtab" onclick="setAR(14,this)" data-t="d14">14天</button>
-          <button class="rtab" onclick="setAR(21,this)" data-t="d21">21天</button>
-          <button class="rtab" onclick="setAR(0,this)" data-t="thisMonth">本月</button>
+        <div class="analysis-title" onclick="toggleAnalysis()">📊 <span data-t="analysis">消費分析</span><span id="analysis-chevron" style="margin-left:auto;font-size:12px;color:var(--text3)">▲</span></div>
+        <div class="analysis-body" id="analysis-body">
+          <div id="budget-alerts"></div>
+          <div id="today-summary" style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)"></div>
+          <div class="range-tabs">
+            <button class="rtab on" onclick="setAR(7,this);event.stopPropagation()" data-t="d7">7天</button>
+            <button class="rtab" onclick="setAR(14,this);event.stopPropagation()" data-t="d14">14天</button>
+            <button class="rtab" onclick="setAR(21,this);event.stopPropagation()" data-t="d21">21天</button>
+            <button class="rtab" onclick="setAR(0,this);event.stopPropagation()" data-t="thisMonth">本月</button>
+          </div>
+          <div id="analysis-content"></div>
         </div>
-        <div id="analysis-content"></div>
       </div>
 
       <div class="card">
@@ -466,6 +470,65 @@ input:checked+.toggle-slider:before{transform:translateX(20px)}
         <button class="btn-primary" onclick="doTransfer()"><span data-t="execTransfer">執行轉帳</span></button>
         <div class="ferr" id="xfrerr"></div>
       </div>
+
+      <!-- 預算管理 -->
+      <div class="card">
+        <div class="card-title"><div class="dot"></div><span>📊 預算管理</span></div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px">設定各支出分類的月預算上限，超過 80% 時顯示警示</p>
+        <div id="budget-settings-list"></div>
+        <div style="margin-top:10px;display:flex;gap:7px;align-items:flex-end">
+          <div class="fg" style="flex:1;margin-bottom:0">
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">分類</label>
+            <select id="budget-cat-sel" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23706858%22 stroke-width=%222%22%3E%3Cpath d=%22M6 9l6 6 6-6%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 10px center;padding-right:28px"></select>
+          </div>
+          <div class="fg" style="flex:1;margin-bottom:0">
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">月預算金額</label>
+            <input type="number" id="budget-amt-inp" inputmode="decimal" placeholder="0" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+          </div>
+          <button class="btn-sm" onclick="setBudget()" style="color:var(--gold2);border-color:var(--gold);height:36px;white-space:nowrap">設定</button>
+        </div>
+      </div>
+
+      <!-- 定期交易 -->
+      <div class="card">
+        <div class="card-title"><div class="dot"></div><span>🔄 定期交易</span></div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px">固定支出自動產生（訂閱、房租…），可暫停或刪除</p>
+        <div id="recurring-list"></div>
+        <div style="margin-top:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">名稱</label>
+              <input type="text" id="rec-name" placeholder="Netflix 訂閱" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+            </div>
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">金額</label>
+              <input type="number" id="rec-amt" inputmode="decimal" placeholder="0" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">分類</label>
+              <select id="rec-cat" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23706858%22 stroke-width=%222%22%3E%3Cpath d=%22M6 9l6 6 6-6%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 10px center;padding-right:28px"></select>
+            </div>
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">每隔幾天</label>
+              <input type="number" id="rec-days" value="30" inputmode="numeric" min="1" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">帳戶（選填）</label>
+              <select id="rec-source" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23706858%22 stroke-width=%222%22%3E%3Cpath d=%22M6 9l6 6 6-6%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 10px center;padding-right:28px"></select>
+            </div>
+            <div class="fg" style="margin-bottom:0">
+              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">首次執行日</label>
+              <input type="date" id="rec-start" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
+            </div>
+          </div>
+          <button class="btn-primary" onclick="addRecurring()">＋ 新增定期交易</button>
+          <div class="ferr" id="recerr"></div>
+        </div>
+      </div>
     </div>
 
     <!-- 投資 -->
@@ -506,65 +569,6 @@ input:checked+.toggle-slider:before{transform:translateX(20px)}
         <button class="btn-primary" onclick="addCat()">＋ <span data-t="add">新增</span></button>
         <div class="ferr" id="ncerr"></div>
       </div>
-      <!-- 預算管理 -->
-      <div class="card">
-        <div class="card-title"><div class="dot"></div><span>📊 預算管理</span></div>
-        <p style="font-size:11px;color:var(--text3);margin-bottom:10px">設定各支出分類的月預算上限，超過 80% 時顯示警示</p>
-        <div id="budget-settings-list"></div>
-        <div style="margin-top:10px;display:flex;gap:7px;align-items:flex-end">
-          <div class="fg" style="flex:1;margin-bottom:0">
-            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">分類</label>
-            <select id="budget-cat-sel" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none"></select>
-          </div>
-          <div class="fg" style="flex:1;margin-bottom:0">
-            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">月預算金額</label>
-            <input type="number" id="budget-amt-inp" inputmode="decimal" placeholder="0" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
-          </div>
-          <button class="btn-sm" onclick="setBudget()" style="color:var(--gold2);border-color:var(--gold);height:36px;white-space:nowrap">設定</button>
-        </div>
-      </div>
-
-      <!-- 定期交易 -->
-      <div class="card">
-        <div class="card-title"><div class="dot"></div><span>🔄 定期交易</span></div>
-        <p style="font-size:11px;color:var(--text3);margin-bottom:10px">固定支出自動產生（訂閱、房租…），可暫停或刪除</p>
-        <div id="recurring-list"></div>
-        <div style="margin-top:10px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
-            <div class="fg" style="margin-bottom:0">
-              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">名稱</label>
-              <input type="text" id="rec-name" placeholder="Netflix 訂閱" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
-            </div>
-            <div class="fg" style="margin-bottom:0">
-              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">金額</label>
-              <input type="number" id="rec-amt" inputmode="decimal" placeholder="0" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
-            <div class="fg" style="margin-bottom:0">
-              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">分類</label>
-              <select id="rec-cat" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none"></select>
-            </div>
-            <div class="fg" style="margin-bottom:0">
-              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">每隔幾天</label>
-              <input type="number" id="rec-days" value="30" inputmode="numeric" min="1" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
-            <div class="fg" style="margin-bottom:0">
-              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">帳戶（選填）</label>
-              <select id="rec-source" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;appearance:none"></select>
-            </div>
-            <div class="fg" style="margin-bottom:0">
-              <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">首次執行日</label>
-              <input type="date" id="rec-start" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%">
-            </div>
-          </div>
-          <button class="btn-primary" onclick="addRecurring()">＋ 新增定期交易</button>
-          <div class="ferr" id="recerr"></div>
-        </div>
-      </div>
-
       <div class="card">
         <div class="card-title"><div class="dot"></div><span data-t="other">其他</span></div>
         <button class="btn-sm btn-del" onclick="clearLocal()" data-t="clearCache" style="margin-bottom:8px">清除本機快取</button><br>
@@ -790,6 +794,7 @@ let txType='expense',acctType='bank',invType='stock';
 let isOpt=false,isInst=false,hideBank=false,hideInv=false,hideTotal=false,analysisRange=7,chartRange='month',chartStart='',chartEnd='';
 let listRange='month',listStart='',listEnd='',listCatType='all',listSubCat='all';
 let barChart=null,pieExpChart=null,pieIncChart=null;
+let analysisCollapsed=false;
 let accessToken=null,syncing=false,tokenClient=null,lastSS='',lastSL='';
 
 function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,hideTotal,lang}));localStorage.setItem(BUDGETS_KEY,JSON.stringify(budgets));}catch(e){}}
@@ -1195,10 +1200,23 @@ function switchTab(tab,el){document.querySelectorAll('.tabbtn').forEach(b=>b.cla
 function toggleHide(w){
   if(w==='bank'){hideBank=!hideBank;document.getElementById('eye-bank').textContent=hideBank?'🙈':'👁';}
   else if(w==='inv'){hideInv=!hideInv;document.getElementById('eye-inv').textContent=hideInv?'🙈':'👁';}
-  else if(w==='total'){hideTotal=!hideTotal;document.getElementById('eye-total').textContent=hideTotal?'🙈':'👁';}
+  else if(w==='total'){
+    hideTotal=!hideTotal;
+    document.getElementById('eye-total').textContent=hideTotal?'🙈':'👁';
+    // hiding total also hides bank & inv
+    document.getElementById('eye-bank').textContent=hideTotal?'🙈':'👁';
+    document.getElementById('eye-inv').textContent=hideTotal?'🙈':'👁';
+  }
   saveCache();render();
 }
 
+function toggleAnalysis(){
+  analysisCollapsed=!analysisCollapsed;
+  const body=document.getElementById('analysis-body');
+  const chev=document.getElementById('analysis-chevron');
+  if(body)body.classList.toggle('collapsed',analysisCollapsed);
+  if(chev)chev.textContent=analysisCollapsed?'▼':'▲';
+}
 function setType(tp){
   txType=tp;isOpt=false;isInst=false;
   ['exp','inc','inv','xfr'].forEach(k=>document.getElementById('tbtn-'+k).className='tbtn');
@@ -1448,6 +1466,7 @@ function renderTodaySummary(){
         <span class="analysis-label" style="flex-shrink:0">${lang==='en'?"Top Expense Today":'今日最高單筆支出'}</span>
         <span class="analysis-val" style="text-align:right">${topTxLabel}</span>
       </div>
+      ${topTx?`<div style="font-size:10px;color:var(--text3)">${lang==='en'?'of total assets: ':'占總資產：'}${pctOfAssets(topTx.amount)}</div>`:''}
     </div>
   `;
 }
@@ -1618,9 +1637,9 @@ function render(){
   document.getElementById('s-exp').textContent=fmt(exp);
   document.getElementById('s-bal').textContent=(bal<0?'-':'')+fmt(bal);
   document.getElementById('s-bal').className='sum-val'+(bal<0?' neg':bal>0?' pos':'');
-  document.getElementById('s-bank').textContent=hideBank?'••••':fmt(bankTotal);
+  document.getElementById('s-bank').textContent=(hideBank||hideTotal)?'••••':fmt(bankTotal);
   document.getElementById('s-cc').textContent=fmt(ccSpend);
-  document.getElementById('s-inv').textContent=hideInv?'••••':fmt(invTotal);
+  document.getElementById('s-inv').textContent=(hideInv||hideTotal)?'••••':fmt(invTotal);
   document.getElementById('s-total').textContent=hideTotal?'••••':fmt(totalAssets);
 
   // 本月收入 sub-labels: % of bank total, % of total assets
@@ -1771,6 +1790,9 @@ function renderBudgetOverview(){
 function renderBudgetSettings(){
   const el=document.getElementById('budget-settings-list');
   if(!el)return;
+  // always populate the category select first
+  const sel=document.getElementById('budget-cat-sel');
+  if(sel)sel.innerHTML=state.cats.expense.map(c=>`<option value="${c}">${c}</option>`).join('');
   const mt=monthTxs();
   const cats=Object.keys(budgets);
   if(!cats.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0 10px">尚未設定任何預算</div>';return;}
@@ -1789,9 +1811,6 @@ function renderBudgetSettings(){
       <div class="budget-bar"><div class="budget-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
     </div>`;
   }).join('');
-  // populate cat select
-  const sel=document.getElementById('budget-cat-sel');
-  if(sel)sel.innerHTML=state.cats.expense.map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 
 // ── Recurring transactions ─────────────────────────────────────────────────────
