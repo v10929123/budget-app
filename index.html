@@ -471,6 +471,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:va
         <button class="btn-sm" onclick="diagSync()" style="margin-top:6px;color:var(--gold2);border-color:var(--gold)">🔍 診斷同步問題</button>
         <div id="diag-out" style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.6;white-space:pre-wrap"></div>
       </div>
+      <div style="text-align:center;padding:12px 0 4px;font-size:11px;color:var(--text3)">
+        Finance Keeper <span id="app-version">v1.1.0</span>
+      </div>
     </div>
   </div>
 
@@ -501,6 +504,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.lang-menu')&&!e.tar
 // ── state ─────────────────────────────────────────────────────────────────────
 const CLIENT_ID='909890286177-sfld5lrhrq2kibq324fkcpv6laq88v61.apps.googleusercontent.com';
 const SHEET_ID='17cmUl6R7vtKmMP3fVm6bQPK8uLB7sj5UAX_ZyJo2ftY';
+const APP_VERSION='v1.1.0';
 const CACHE_KEY='fk_v5';
 const PIE_COLORS=['#c9a84c','#ff4d6d','#00d68f','#4d9fff','#a78bfa','#22d3ee','#fb923c','#f472b6'];
 const ICONS={餐飲:'🍜',交通:'🚌',購物:'🛍️',娛樂:'🎮',居住:'🏠',醫療:'💊',薪資:'💼',獎金:'🎁',副業:'💡',投資:'📈',其他:'📋',轉帳:'🔄',健身:'🏋️',旅遊:'✈️',教育:'📚',Bitcoin:'₿',Ethereum:'⟠',加密貨幣:'🪙'};
@@ -1601,6 +1605,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').cat
 
 // ── init ──────────────────────────────────────────────────────────────────────
 loadCache();
+document.getElementById('app-version').textContent=APP_VERSION;
 lang=localStorage.getItem('fk_lang')||lang;
 ['zh-TW','zh-CN','en'].forEach(x=>document.getElementById('lang-'+x)?.classList.remove('on'));
 document.getElementById('lang-'+lang)?.classList.add('on');
