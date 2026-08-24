@@ -1692,7 +1692,9 @@ function addAcct(){
   const statementBuffer=acctType==='cc'?(parseInt(document.getElementById('a-buffer').value)>=0?parseInt(document.getElementById('a-buffer').value):7):undefined;
   const ex=state.accounts.find(a=>a.name===name&&a.type===acctType);
   if(ex){
-    ex.balance=bal;if(dueDay)ex.dueDay=dueDay;if(debitBankId!==undefined)ex.debitBankId=debitBankId;if(statementBuffer!==undefined)ex.statementBuffer=statementBuffer;
+    ex.balance=bal;if(dueDay)ex.dueDay=dueDay;if(debitBankId!==undefined)ex.debitBankId=debitBankId;
+    // Only set buffer if not already configured — use ✎ edit button to change an existing buffer
+    if(statementBuffer!==undefined&&ex.statementBuffer===undefined)ex.statementBuffer=statementBuffer;
   } else {
     if(!state.nextId||state.nextId<=0||isNaN(state.nextId)){
       const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id)].filter(n=>n&&n>0);
