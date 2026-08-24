@@ -884,8 +884,8 @@ async function updateInvestmentPrices(manual){
     console.warn('[prices] 台股建議設定 Proxy URL 以避免 CORS 問題');
   }
   for(const inv of stockInvs){
-    const ticker=(inv.ticker||'').trim();
-    if(!ticker){ failedCount++; continue; }
+    const ticker=(inv.ticker||inv.name||'').trim(); // fallback to name if ticker empty
+    if(!ticker){ console.warn('[prices] TW stock has no ticker or name, skipping id='+inv.id); failedCount++; continue; }
     try{
       let data;
       if(proxyUrl){
@@ -920,8 +920,8 @@ async function updateInvestmentPrices(manual){
     }catch(e){console.warn('[prices] FX fetch failed',e);}
     for(const inv of usInvs){
       const ticker=(inv.ticker||inv.name||'').trim().toUpperCase();
-      if(!ticker){ failedCount++; continue; }
-      if(!proxyUrl){ console.warn('[prices] US stock requires proxy URL'); failedCount++; continue; }
+      if(!ticker){ console.warn('[prices] US stock has no ticker or name, skipping id='+inv.id); failedCount++; continue; }
+      if(!proxyUrl){ console.warn('[prices] US stock requires proxy URL, skipping',ticker); failedCount++; continue; }
       try{
         const url=`${proxyUrl}?type=us&symbol=${encodeURIComponent(ticker)}`;
         const res=await fetch(url);
