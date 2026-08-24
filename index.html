@@ -217,6 +217,23 @@ input:checked+.toggle-slider:before{transform:translateX(20px)}
 .rec-info{flex:1;min-width:0}
 .rec-name{font-size:13px;font-weight:500;color:var(--text)}
 .rec-meta{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ── debt tracking ── */
+.debt-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 10px;margin-bottom:5px}
+.debt-info{flex:1;min-width:0}
+.debt-name{font-size:13px;font-weight:500;color:var(--text)}
+.debt-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.debt-settled{opacity:.45;text-decoration:line-through}
+
+/* ── collapsible sections ── */
+.sec-header{display:flex;align-items:center;justify-content:space-between}
+.sec-header .sec-title{margin-bottom:0}
+.collapse-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:3px 6px;border-radius:5px;line-height:1;transition:transform .25s}
+.collapsible-body{overflow:hidden;transition:max-height .3s ease,opacity .3s ease;max-height:2000px;opacity:1}
+.collapsible-body.collapsed{max-height:0;opacity:0}
+
+/* ── asset chart ── */
+.snap-tabs{display:flex;gap:5px;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -433,15 +450,38 @@ input:checked+.toggle-slider:before{transform:translateX(20px)}
         <div class="chart-section-title" data-t="incByCategory">收入分類</div>
         <div class="card" style="padding:11px"><div id="inc-pie-legend" style="margin-bottom:8px"></div><div style="position:relative;width:100%;height:190px"><canvas id="chart-pie-inc" role="img"></canvas></div></div>
       </div>
+      <div class="chart-section">
+        <div class="chart-section-title">📈 總資產趨勢</div>
+        <div class="card" style="padding:11px">
+          <div class="snap-tabs">
+            <button class="rtab on" onclick="setSnapRange(90,this)">90天</button>
+            <button class="rtab" onclick="setSnapRange(180,this)">6月</button>
+            <button class="rtab" onclick="setSnapRange(365,this)">1年</button>
+            <button class="rtab" onclick="setSnapRange(0,this)">全部</button>
+          </div>
+          <div style="position:relative;width:100%;height:190px"><canvas id="chart-asset" role="img"></canvas></div>
+          <div id="asset-chart-empty" style="display:none;text-align:center;font-size:12px;color:var(--text3);padding:1rem 0">尚無快照資料，每次開啟 App 會自動記錄一筆</div>
+        </div>
+      </div>
     </div>
 
     <!-- 帳戶 -->
     <div class="panel" id="panel-accts">
       <div id="cc-alerts-acct"></div>
-      <div class="sec-title" data-t="bankAccounts">銀行帳戶</div>
-      <div id="bank-list"></div>
-      <div class="sec-title" data-t="creditCards" style="margin-top:10px">信用卡</div>
-      <div id="cc-list"></div>
+      <div class="sec-header" style="margin-bottom:7px">
+        <div class="sec-title" data-t="bankAccounts">銀行帳戶</div>
+        <button class="collapse-btn" id="bank-collapse-btn" onclick="toggleBankCollapse()">▼</button>
+      </div>
+      <div class="collapsible-body" id="bank-list-wrap">
+        <div id="bank-list"></div>
+      </div>
+      <div class="sec-header" style="margin-top:10px;margin-bottom:7px">
+        <div class="sec-title" data-t="creditCards">信用卡</div>
+        <button class="collapse-btn" id="cc-collapse-btn" onclick="toggleCCCollapse()">▼</button>
+      </div>
+      <div class="collapsible-body" id="cc-list-wrap">
+        <div id="cc-list"></div>
+      </div>
       <div class="card">
         <div class="card-title"><div class="dot"></div><span data-t="addAccount">新增帳戶</span></div>
         <div class="type-tog">
@@ -527,6 +567,30 @@ input:checked+.toggle-slider:before{transform:translateX(20px)}
           </div>
           <button class="btn-primary" onclick="addRecurring()">＋ 新增定期交易</button>
           <div class="ferr" id="recerr"></div>
+        </div>
+      </div>
+
+      <!-- 借貸追蹤 -->
+      <div class="card">
+        <div class="card-title"><div class="dot" style="background:var(--blue)"></div><span>🤝 借貸追蹤</span></div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px">記錄借出／借入金額，追蹤未還清的款項</p>
+        <div id="debt-list"></div>
+        <div style="margin-top:10px">
+          <div class="type-tog" style="margin-bottom:9px">
+            <button class="tbtn" id="debt-tbtn-lent" onclick="setDebtType('lent')">💸 我借出</button>
+            <button class="tbtn on-exp" id="debt-tbtn-borrowed" onclick="setDebtType('borrowed')">🤝 我借入</button>
+          </div>
+          <div class="frow">
+            <div class="fg" style="margin-bottom:0"><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">對象</label><input type="text" id="debt-person" placeholder="姓名" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%"></div>
+            <div class="fg" style="margin-bottom:0"><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">金額</label><input type="number" id="debt-amount" inputmode="decimal" placeholder="0" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%"></div>
+          </div>
+          <div class="frow" style="margin-top:7px">
+            <div class="fg" style="margin-bottom:0"><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">借款日</label><input type="date" id="debt-date" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%"></div>
+            <div class="fg" style="margin-bottom:0"><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">到期日（選填）</label><input type="date" id="debt-due" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%"></div>
+          </div>
+          <div class="fg" style="margin-top:7px"><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">備註</label><input type="text" id="debt-note" placeholder="（選填）" style="font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);width:100%"></div>
+          <button class="btn-primary" onclick="addDebt()">＋ 新增借貸記錄</button>
+          <div class="ferr" id="debterr"></div>
         </div>
       </div>
     </div>
@@ -620,7 +684,6 @@ const CLIENT_ID='909890286177-sfld5lrhrq2kibq324fkcpv6laq88v61.apps.googleuserco
 const SHEET_ID='17cmUl6R7vtKmMP3fVm6bQPK8uLB7sj5UAX_ZyJo2ftY';
 const APP_VERSION='v1.2.0';
 const CACHE_KEY='fk_v5';
-const BUDGETS_KEY='fk_budgets';
 const PIE_COLORS=['#c9a84c','#ff4d6d','#00d68f','#4d9fff','#a78bfa','#22d3ee','#fb923c','#f472b6'];
 const ICONS={餐飲:'🍜',交通:'🚌',購物:'🛍️',娛樂:'🎮',居住:'🏠',醫療:'💊',薪資:'💼',獎金:'🎁',副業:'💡',投資:'📈',其他:'📋',轉帳:'🔄',健身:'🏋️',旅遊:'✈️',教育:'📚',Bitcoin:'₿',Ethereum:'⟠',加密貨幣:'🪙'};
 const MN_ZH=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
@@ -797,20 +860,22 @@ function renderTodayDate(){
   }
 }
 
-let state={txs:[],accounts:[],investments:[],recurrings:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};
-let budgets={}; // category→monthly budget amount, stored separately in localStorage
+let state={txs:[],accounts:[],investments:[],recurrings:[],debts:[],snapshots:[],budgets:{},cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};
 let curYear=new Date().getFullYear(),curMonth=new Date().getMonth();
-let txType='expense',acctType='bank',invType='stock';
+let txType='expense',acctType='bank',invType='stock',debtType='borrowed';
 let isOpt=false,isInst=false,hideBank=false,hideInv=false,hideTotal=false,hideAmounts=false,analysisRange=7,chartRange='month',chartStart='',chartEnd='';
-let ccEditId=null;
+let ccEditId=null,bankCollapsed=false,ccCollapsed=false,snapRange=90;
 let listRange='month',listStart='',listEnd='',listCatType='all',listSubCat='all';
-let barChart=null,pieExpChart=null,pieIncChart=null;
+let barChart=null,pieExpChart=null,pieIncChart=null,assetChart=null;
 let analysisCollapsed=false;
+let dragSrcCat=null,dragSrcType=null,dragSrcIdx=-1;
 let accessToken=null,syncing=false,tokenClient=null,lastSS='',lastSL='';
 
-function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,hideTotal,hideAmounts,lang}));localStorage.setItem(BUDGETS_KEY,JSON.stringify(budgets));}catch(e){}}
-function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;if(!state.recurrings)state.recurrings=[];curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;hideTotal=p.hideTotal||false;hideAmounts=p.hideAmounts||false;lang=p.lang||lang;}const b=localStorage.getItem(BUDGETS_KEY);if(b)budgets=JSON.parse(b);}catch(e){}}
-function clearStateKeepPrefs(){state={txs:[],accounts:[],investments:[],recurrings:[],cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};}
+function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({state,curYear,curMonth,hideBank,hideInv,hideTotal,hideAmounts,bankCollapsed,ccCollapsed,lang}));}catch(e){}}
+function loadCache(){try{const d=localStorage.getItem(CACHE_KEY);if(d){const p=JSON.parse(d);state=p.state||state;if(!state.recurrings)state.recurrings=[];if(!state.debts)state.debts=[];if(!state.snapshots)state.snapshots=[];if(!state.budgets)state.budgets={};curYear=p.curYear||curYear;curMonth=p.curMonth??curMonth;hideBank=p.hideBank||false;hideInv=p.hideInv||false;hideTotal=p.hideTotal||false;hideAmounts=p.hideAmounts||false;bankCollapsed=p.bankCollapsed||false;ccCollapsed=p.ccCollapsed||false;lang=p.lang||lang;}// migrate old separate budgets key
+const ob=localStorage.getItem('fk_budgets');if(ob){try{const bd=JSON.parse(ob);if(bd&&typeof bd==='object'&&!Object.keys(state.budgets).length){state.budgets=bd;}localStorage.removeItem('fk_budgets');}catch(e2){}}
+}catch(e){}}
+function clearStateKeepPrefs(){state={txs:[],accounts:[],investments:[],recurrings:[],debts:[],snapshots:[],budgets:{},cats:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']},nextId:1};}
 function clearLocal(){if(confirm(T('clearCache')+'?')){localStorage.removeItem(CACHE_KEY);localStorage.removeItem('fk_lang');location.reload();}}
 
 async function diagSync(){
@@ -999,6 +1064,7 @@ async function showMainApp(){
   await ensureSheets();
   await loadFromSheets();
   processRecurrings();
+  takeAssetSnapshot();
   render();
   checkCCAutoPay();
   updateInvestmentPrices(false); // auto-refresh market prices on open (fire-and-forget)
@@ -1032,10 +1098,10 @@ async function ensureSheets(){
   try{
     const info=await shReq('GET','');
     const existing=info.sheets.map(s=>s.properties.title);
-    const needed=['Transactions','Accounts','Investments','Categories','Recurrings'].filter(s=>!existing.includes(s));
+    const needed=['Transactions','Accounts','Investments','Categories','Recurrings','Budgets','Debts','AssetSnapshots'].filter(s=>!existing.includes(s));
     if(needed.length){
       await shReq('POST',':batchUpdate',{requests:needed.map(title=>({addSheet:{properties:{title}}}))});
-      const headers={Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name'],Recurrings:['id','name','amount','cat','source','intervalDays','nextDate','active','note']};
+      const headers={Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name'],Recurrings:['id','name','amount','cat','source','intervalDays','nextDate','active','note'],Budgets:['cat','amount'],Debts:['id','type','person','amount','date','dueDate','note','settled'],AssetSnapshots:['date','totalAssets']};
       await shReq('POST','/values:batchUpdate',{valueInputOption:'RAW',data:needed.map(s=>({range:`${s}!A1`,values:[headers[s]]}))});
     }
   }catch(e){setSS('err',T('initFail'));}
@@ -1054,12 +1120,25 @@ async function loadFromSheets(){
     const newCats=catRows.length?{expense:[],income:[]}:{expense:['餐飲','交通','購物','娛樂','居住','醫療','其他'],income:['薪資','獎金','副業','其他']};
     if(catRows.length)catRows.forEach(r=>{if(r[0]==='expense'||r[0]==='income')newCats[r[0]].push(r[1]||'');});
     state.txs=newTxs;state.accounts=newAccts;state.investments=newInvs;state.cats=newCats;
-    // load Recurrings (new sheet — silent fail on first upgrade)
+    // load new sheets (silent fail on first upgrade)
     try{
       const rRes=await shReq('GET','/values/'+encodeURIComponent('Recurrings!A2:Z'));
       state.recurrings=(rRes.values||[]).filter(r=>r&&r.length>=2).map(r=>({id:parseId(r[0])||(autoId++),name:r[1]||'',amount:parseFloat(r[2])||0,cat:r[3]||'',source:r[4]||'',intervalDays:parseInt(r[5])||30,nextDate:r[6]||today(),active:r[7]!=='false',note:r[8]||''}));
-    }catch(e2){state.recurrings=state.recurrings||[];console.warn('[loadFromSheets] Recurrings not yet created:',e2.message);}
-    const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id),...state.recurrings.map(x=>x.id)];
+    }catch(e2){state.recurrings=state.recurrings||[];console.warn('[loadFromSheets] Recurrings:',e2.message);}
+    try{
+      const bRes=await shReq('GET','/values/'+encodeURIComponent('Budgets!A2:Z'));
+      const nb={};(bRes.values||[]).forEach(r=>{if(r[0]&&r[1]!==undefined)nb[r[0]]=parseFloat(r[1])||0;});
+      state.budgets=nb;
+    }catch(e2){state.budgets=state.budgets||{};console.warn('[loadFromSheets] Budgets:',e2.message);}
+    try{
+      const dRes=await shReq('GET','/values/'+encodeURIComponent('Debts!A2:Z'));
+      state.debts=(dRes.values||[]).filter(r=>r&&r.length>=4).map(r=>({id:parseId(r[0])||(autoId++),type:r[1]||'borrowed',person:r[2]||'',amount:parseFloat(r[3])||0,date:r[4]||today(),dueDate:r[5]||'',note:r[6]||'',settled:r[7]==='true'}));
+    }catch(e2){state.debts=state.debts||[];console.warn('[loadFromSheets] Debts:',e2.message);}
+    try{
+      const sRes=await shReq('GET','/values/'+encodeURIComponent('AssetSnapshots!A2:Z'));
+      state.snapshots=(sRes.values||[]).filter(r=>r&&r[0]&&r[1]!==undefined).map(r=>({date:r[0],totalAssets:parseFloat(r[1])||0}));
+    }catch(e2){state.snapshots=state.snapshots||[];console.warn('[loadFromSheets] AssetSnapshots:',e2.message);}
+    const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id),...state.recurrings.map(x=>x.id),...(state.debts||[]).map(x=>x.id)];
     state.nextId=allIds.length>0?Math.max(...allIds)+1:1;
     saveCache();
     const now=new Date();
@@ -1081,7 +1160,10 @@ async function writeSheet(name,rows){
       Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],
       Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],
       Categories:['type','name'],
-      Recurrings:['id','name','amount','cat','source','intervalDays','nextDate','active','note']
+      Recurrings:['id','name','amount','cat','source','intervalDays','nextDate','active','note'],
+      Budgets:['cat','amount'],
+      Debts:['id','type','person','amount','date','dueDate','note','settled'],
+      AssetSnapshots:['date','totalAssets']
     };
     const allRows=[headers[name]||[],...rows];
     const writeRange=name+'!A1';
@@ -1104,7 +1186,10 @@ async function syncAll(){
       writeSheet('Accounts',state.accounts.map(x=>[x.id,x.type,x.name,x.balance,x.dueDay||'',x.debitBankId||'',x.statementBuffer!==undefined?x.statementBuffer:7])),
       writeSheet('Investments',state.investments.map(x=>[x.id,x.invType||'stock',x.name,x.ticker,x.price,x.shares,x.curPrice,x.date,x.source||''])),
       writeSheet('Categories',[...state.cats.expense.map(c=>['expense',c]),...state.cats.income.map(c=>['income',c])]),
-      writeSheet('Recurrings',(state.recurrings||[]).map(x=>[x.id,x.name,x.amount,x.cat,x.source||'',x.intervalDays||30,x.nextDate||today(),String(x.active!==false),x.note||'']))
+      writeSheet('Recurrings',(state.recurrings||[]).map(x=>[x.id,x.name,x.amount,x.cat,x.source||'',x.intervalDays||30,x.nextDate||today(),String(x.active!==false),x.note||''])),
+      writeSheet('Budgets',Object.entries(state.budgets||{}).map(([cat,amt])=>[cat,amt])),
+      writeSheet('Debts',(state.debts||[]).map(x=>[x.id,x.type,x.person,x.amount,x.date,x.dueDate||'',x.note||'',String(x.settled||false)])),
+      writeSheet('AssetSnapshots',(state.snapshots||[]).map(x=>[x.date,x.totalAssets]))
     ]);
     saveCache();
     const nt=new Date();
@@ -1502,7 +1587,7 @@ function renderTodaySummary(){
 function renderBudgetAlerts(){
   // show budget alert bars in the analysis card when any category exceeds 80%
   const mt=monthTxs();
-  const alerts=Object.entries(budgets).filter(([cat,limit])=>{
+  const alerts=Object.entries(state.budgets||{}).filter(([cat,limit])=>{
     const spent=mt.filter(x=>x.type==='expense'&&x.cat===cat).reduce((s,x)=>s+x.amount,0);
     return limit>0&&spent/limit>=0.8;
   }).map(([cat,limit])=>{
@@ -1744,15 +1829,19 @@ function render(){
   }).join(''):`<div class="empty">${T('noInvest')}</div>`;
 
   // cat settings — 全部都可刪
-  const chipStyle='padding:5px 10px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:12px;color:var(--text2);display:inline-flex;align-items:center;gap:4px';
-  document.getElementById('exp-cats').innerHTML=state.cats.expense.map(c=>`<span style="${chipStyle}">${c}<span onclick="delCat('expense','${c}')" style="color:var(--red);cursor:pointer;font-size:13px">×</span></span>`).join('');
-  document.getElementById('inc-cats').innerHTML=state.cats.income.map(c=>`<span style="${chipStyle}">${c}<span onclick="delCat('income','${c}')" style="color:var(--red);cursor:pointer;font-size:13px">×</span></span>`).join('');
+  const chipStyle='padding:5px 10px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:12px;color:var(--text2);display:inline-flex;align-items:center;gap:4px;cursor:grab;user-select:none';
+  const mkChip=(type,c,i)=>`<span draggable="true" style="${chipStyle}" ondragstart="onCatDragStart(event,'${type}',${i})" ondragover="onCatDragOver(event)" ondrop="onCatDrop(event,'${type}',${i})" ondragend="onCatDragEnd(event)">⠿ ${c}<span onclick="delCat('${type}','${c}')" style="color:var(--red);cursor:pointer;font-size:13px">×</span></span>`;
+  document.getElementById('exp-cats').innerHTML=state.cats.expense.map((c,i)=>mkChip('expense',c,i)).join('');
+  document.getElementById('inc-cats').innerHTML=state.cats.income.map((c,i)=>mkChip('income',c,i)).join('');
 
   // new feature renders
   renderBudgetOverview();
   renderBudgetSettings();
   renderRecurringList();
   renderBudgetAlerts();
+  renderDebtList();
+  renderAssetChart();
+  applyCollapseState();
 
   refreshSelects();renderCharts(getChartTxs());
 }
@@ -1789,24 +1878,26 @@ function setBudget(){
   const cat=document.getElementById('budget-cat-sel').value;
   const amt=parseFloat(document.getElementById('budget-amt-inp').value);
   if(!cat||isNaN(amt)||amt<0)return;
-  if(amt===0){delete budgets[cat];}else{budgets[cat]=amt;}
+  if(!state.budgets)state.budgets={};
+  if(amt===0){delete state.budgets[cat];}else{state.budgets[cat]=amt;}
   document.getElementById('budget-amt-inp').value='';
-  saveCache();render();
+  saveCache();syncAll();render();
 }
 function delBudget(cat){
-  delete budgets[cat];
-  saveCache();render();
+  if(!state.budgets)state.budgets={};
+  delete state.budgets[cat];
+  saveCache();syncAll();render();
 }
 function renderBudgetOverview(){
   const el=document.getElementById('budget-overview');
   if(!el)return;
-  const cats=Object.keys(budgets);
+  const cats=Object.keys(state.budgets||{});
   if(!cats.length){el.innerHTML='';return;}
   const mt=monthTxs();
   const totalAssets=state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0)+state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
   const assetPct=(amt)=>totalAssets>0?((amt/totalAssets)*100).toFixed(1)+'%':'—';
   const rows=cats.map(cat=>{
-    const limit=budgets[cat];
+    const limit=state.budgets[cat];
     const spent=mt.filter(x=>x.type==='expense'&&x.cat===cat).reduce((s,x)=>s+x.amount,0);
     const pct=limit>0?Math.min(100,(spent/limit)*100):0;
     const spentPct=limit>0?((spent/limit)*100).toFixed(0):'0';
@@ -1835,10 +1926,10 @@ function renderBudgetSettings(){
   const mt=monthTxs();
   const totalAssets=state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0)+state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
   const assetPct=(amt)=>totalAssets>0?((amt/totalAssets)*100).toFixed(1)+'%':'—';
-  const cats=Object.keys(budgets);
+  const cats=Object.keys(state.budgets||{});
   if(!cats.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0 10px">尚未設定任何預算</div>';return;}
   el.innerHTML=cats.map(cat=>{
-    const limit=budgets[cat];
+    const limit=state.budgets[cat];
     const spent=mt.filter(x=>x.type==='expense'&&x.cat===cat).reduce((s,x)=>s+x.amount,0);
     const pct=limit>0?Math.min(100,(spent/limit)*100):0;
     const spentPct=limit>0?((spent/limit)*100).toFixed(0):'0';
@@ -1927,6 +2018,144 @@ function renderRecurringList(){
   }).join('');
 }
 
+// ── Bank / CC collapse ────────────────────────────────────────────────────────
+function toggleBankCollapse(){
+  bankCollapsed=!bankCollapsed;
+  const wrap=document.getElementById('bank-list-wrap');
+  const btn=document.getElementById('bank-collapse-btn');
+  if(wrap)wrap.classList.toggle('collapsed',bankCollapsed);
+  if(btn)btn.style.transform=bankCollapsed?'rotate(-90deg)':'';
+  saveCache();
+}
+function toggleCCCollapse(){
+  ccCollapsed=!ccCollapsed;
+  const wrap=document.getElementById('cc-list-wrap');
+  const btn=document.getElementById('cc-collapse-btn');
+  if(wrap)wrap.classList.toggle('collapsed',ccCollapsed);
+  if(btn)btn.style.transform=ccCollapsed?'rotate(-90deg)':'';
+  saveCache();
+}
+function applyCollapseState(){
+  const bw=document.getElementById('bank-list-wrap');
+  const cw=document.getElementById('cc-list-wrap');
+  const bb=document.getElementById('bank-collapse-btn');
+  const cb=document.getElementById('cc-collapse-btn');
+  if(bw){bw.classList.toggle('collapsed',bankCollapsed);if(bb)bb.style.transform=bankCollapsed?'rotate(-90deg)':'';}
+  if(cw){cw.classList.toggle('collapsed',ccCollapsed);if(cb)cb.style.transform=ccCollapsed?'rotate(-90deg)':'';}
+}
+
+// ── Debt tracking ─────────────────────────────────────────────────────────────
+function setDebtType(t){
+  debtType=t;
+  document.getElementById('debt-tbtn-lent').className='tbtn'+(t==='lent'?' on-inc':'');
+  document.getElementById('debt-tbtn-borrowed').className='tbtn'+(t==='borrowed'?' on-exp':'');
+}
+function addDebt(){
+  const person=document.getElementById('debt-person').value.trim();
+  if(!person)return showE('debterr','請輸入對象姓名');
+  const amount=parseFloat(document.getElementById('debt-amount').value);
+  if(!amount||amount<=0)return showE('debterr','請輸入金額');
+  const date=document.getElementById('debt-date').value||today();
+  const dueDate=document.getElementById('debt-due').value||'';
+  const note=document.getElementById('debt-note').value.trim();
+  if(!state.debts)state.debts=[];
+  state.debts.push({id:safeNextId(),type:debtType,person,amount,date,dueDate,note,settled:false});
+  document.getElementById('debt-person').value='';
+  document.getElementById('debt-amount').value='';
+  document.getElementById('debt-due').value='';
+  document.getElementById('debt-note').value='';
+  clearE('debterr');saveCache();syncAll();render();
+}
+function settleDebt(id){
+  const d=state.debts.find(x=>x.id===id);
+  if(d){d.settled=!d.settled;saveCache();syncAll();render();}
+}
+function delDebt(id){
+  if(!confirm('確定刪除此借貸記錄？'))return;
+  state.debts=state.debts.filter(x=>x.id!==id);
+  saveCache();syncAll();render();
+}
+function renderDebtList(){
+  const el=document.getElementById('debt-list');
+  if(!el)return;
+  const debts=state.debts||[];
+  if(!debts.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0 10px">尚無借貸記錄</div>';return;}
+  const unsettled=debts.filter(d=>!d.settled);
+  const settled=debts.filter(d=>d.settled);
+  const renderItem=d=>{
+    const isLent=d.type==='lent';
+    const clr=isLent?'var(--green)':'var(--red)';
+    const label=isLent?'💸 借出':'🤝 借入';
+    const due=d.dueDate?` · 到 ${d.dueDate}`:'';
+    return `<div class="debt-item${d.settled?' debt-settled':''}">
+      <div class="debt-info">
+        <div class="debt-name">${d.person} <span style="font-size:10px;color:${clr};font-weight:600">${label}</span></div>
+        <div class="debt-meta">${d.date}${due}${d.note?` · ${d.note}`:''}</div>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:${clr};white-space:nowrap">${fmt(d.amount)}</span>
+      <button class="btn-sm" onclick="settleDebt(${d.id})" style="color:${d.settled?'var(--text3)':'var(--green)'};border-color:${d.settled?'var(--border2)':'var(--green)'};padding:3px 6px;font-size:10px">${d.settled?'撤銷':'還清'}</button>
+      <button class="btn-sm btn-del" onclick="delDebt(${d.id})" style="margin-left:3px">×</button>
+    </div>`;
+  };
+  el.innerHTML=(unsettled.length?unsettled.map(renderItem).join(''):'')+(settled.length?`<div style="font-size:10px;color:var(--text3);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.4px">已還清</div>`+settled.map(renderItem).join(''):'');
+}
+
+// ── Asset snapshots ───────────────────────────────────────────────────────────
+function takeAssetSnapshot(){
+  if(!state.snapshots)state.snapshots=[];
+  const todayStr=today();
+  const totalAssets=state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0)+state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
+  const existing=state.snapshots.findIndex(s=>s.date===todayStr);
+  if(existing>=0){state.snapshots[existing].totalAssets=totalAssets;}
+  else{state.snapshots.push({date:todayStr,totalAssets});}
+  state.snapshots.sort((a,b)=>a.date.localeCompare(b.date));
+  saveCache();
+  // async sync snapshot to Sheets (non-blocking)
+  if(accessToken)writeSheet('AssetSnapshots',state.snapshots.map(x=>[x.date,x.totalAssets])).catch(()=>{});
+}
+function setSnapRange(days,btn){
+  snapRange=days;
+  document.querySelectorAll('.snap-tabs .rtab').forEach(b=>b.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  renderAssetChart();
+}
+function renderAssetChart(){
+  const snapshots=state.snapshots||[];
+  const emptyEl=document.getElementById('asset-chart-empty');
+  const canvas=document.getElementById('chart-asset');
+  if(!canvas)return;
+  let data=snapshots;
+  if(snapRange>0){
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-snapRange);
+    const cutStr=cutoff.toISOString().slice(0,10);
+    data=snapshots.filter(s=>s.date>=cutStr);
+  }
+  if(emptyEl)emptyEl.style.display=data.length<2?'block':'none';
+  canvas.style.display=data.length<2?'none':'block';
+  if(data.length<2){if(assetChart){assetChart.destroy();assetChart=null;}return;}
+  const labels=data.map(s=>s.date.slice(5).replace('-','/'));
+  const values=data.map(s=>s.totalAssets);
+  if(assetChart)assetChart.destroy();
+  assetChart=new Chart(canvas,{type:'line',data:{labels,datasets:[{label:'總資產',data:values,borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,.12)',fill:true,tension:.35,pointRadius:data.length>60?0:3,pointHoverRadius:5,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.parsed.y)}}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#706858',font:{size:9},maxTicksLimit:8}},y:{grid:{color:'rgba(255,255,255,.07)'},ticks:{color:'#706858',font:{size:9},callback:v=>fmt(v)}}}}});
+}
+
+// ── Category drag-to-reorder ──────────────────────────────────────────────────
+function onCatDragStart(e,type,idx){
+  dragSrcType=type;dragSrcIdx=idx;
+  e.dataTransfer.effectAllowed='move';
+  e.target.style.opacity='0.4';
+}
+function onCatDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+function onCatDrop(e,type,idx){
+  e.preventDefault();
+  if(dragSrcType!==type||dragSrcIdx===idx)return;
+  const arr=state.cats[type];
+  const moved=arr.splice(dragSrcIdx,1)[0];
+  arr.splice(idx,0,moved);
+  saveCache();syncAll();render();
+}
+function onCatDragEnd(e){e.target.style.opacity='';dragSrcType=null;dragSrcIdx=-1;}
+
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
 
 // ── init ──────────────────────────────────────────────────────────────────────
@@ -1940,10 +2169,11 @@ document.getElementById('fi-date').value=today();
 document.getElementById('ft-date').value=today();
 document.getElementById('xfr-date').value=today();
 document.getElementById('rec-start').value=today();
+document.getElementById('debt-date').value=today();
 document.getElementById('chart-start').value=new Date(curYear,curMonth,1).toISOString().slice(0,10);
 document.getElementById('chart-end').value=today();
 setSS('',T('notLoggedIn'));
-setType('expense');setAcctType('bank');
+setType('expense');setAcctType('bank');setDebtType('borrowed');
 document.querySelectorAll('.range-btn')[0].classList.add('on');
 applyLang();render();
 </script>
