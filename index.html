@@ -655,10 +655,10 @@ input:checked+.toggle-slider:before{transform:translateX(20px)}
           <div><div style="font-size:13px;color:var(--text)">啟用帳單提醒</div></div>
           <label class="toggle-sw"><input type="checkbox" id="toggle-notif" onchange="setNotifEnabled(this.checked)"><span class="toggle-slider"></span></label>
         </div>
-        <div class="frow" style="align-items:center;gap:8px">
-          <label style="font-size:12px;color:var(--text2);white-space:nowrap">提前幾天提醒</label>
-          <input type="number" id="notif-days-inp" value="3" min="1" max="30" inputmode="numeric" style="width:64px;font-size:14px;padding:6px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text)" onchange="setNotifDays(this.value)">
-          <label style="font-size:12px;color:var(--text2)">天</label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
+          <label style="font-size:12px;color:var(--text2);white-space:nowrap;flex-shrink:0">提前幾天提醒</label>
+          <input type="number" id="notif-days-inp" value="3" min="1" max="30" inputmode="numeric" style="width:60px;font-size:14px;padding:6px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);flex-shrink:0" onchange="setNotifDays(this.value)">
+          <label style="font-size:12px;color:var(--text2);white-space:nowrap;flex-shrink:0">天</label>
         </div>
         <button class="btn-sm" style="margin-top:10px;color:var(--gold2);border-color:var(--gold)" onclick="requestNotifPermission()">🔔 授權推播通知</button>
         <div id="notif-status" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
@@ -1288,6 +1288,53 @@ async function writeSheet(name,rows){
     throw e;
   }
 }
+
+// ── Smart partial-sync helpers (reduce API quota for common ops) ───────────────
+async function appendSheetRow(name,row){
+  // Append a single row without clearing — O(1) vs O(n) for full rewrite
+  await shReq('POST','/values/'+encodeURIComponent(name+'!A:Z')+':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS',{values:[row]});
+}
+async function writeSheetsPartial(writes){
+  // writes = [{name, rows}] — rewrite only the listed sheets, in parallel
+  await Promise.all(writes.map(({name,rows})=>writeSheet(name,rows)));
+  const nt=new Date();
+  setSS('ok',`${T('synced')} ${String(nt.getHours()).padStart(2,'0')}:${String(nt.getMinutes()).padStart(2,'0')}`);
+}
+function txRow(tx){return[tx.id,tx.type,tx.amount,tx.cat,tx.note,tx.date,tx.source||'',String(tx.optional||false),String(tx.confirmed||false),tx.installGroup||'',tx.installIndex||0,tx.installTotal||0];}
+function acctRows(){return state.accounts.map(x=>[x.id,x.type,x.name,x.balance,x.dueDay||'',x.debitBankId||'',x.statementBuffer!==undefined?x.statementBuffer:7]);}
+async function syncTxAppend(tx){
+  // For a single new tx: append 1 row to Transactions + rewrite Accounts (always small).
+  // Accounts are rewritten in full because balance just changed.
+  // Falls back to full syncAll on any error.
+  if(!accessToken)return;
+  setSS('loading',T('loading'));
+  try{
+    await Promise.all([
+      appendSheetRow('Transactions',txRow(tx)),
+      writeSheet('Accounts',acctRows())
+    ]);
+    const nt=new Date();
+    setSS('ok',`${T('synced')} ${String(nt.getHours()).padStart(2,'0')}:${String(nt.getMinutes()).padStart(2,'0')}`);
+  }catch(e){
+    console.warn('[syncTxAppend] fallback to full sync:',e.message);
+    syncAll();
+  }
+}
+async function syncTxsAndAccounts(){
+  // For bulk tx writes (installments, auto-pay) or when order matters: rewrite Transactions + Accounts
+  if(!accessToken)return;
+  setSS('loading',T('loading'));
+  try{
+    await writeSheetsPartial([
+      {name:'Transactions',rows:state.txs.map(txRow)},
+      {name:'Accounts',rows:acctRows()}
+    ]);
+  }catch(e){
+    console.warn('[syncTxsAndAccounts] fallback:',e.message);
+    syncAll();
+  }
+}
+
 async function syncAll(){
   if(!accessToken){setSS('err',T('notLoggedIn'));return;}
   if(syncing)return;
@@ -1396,8 +1443,9 @@ function checkCCAutoPay(){
     bank.balance=Math.round((bank.balance-payableRounded)*100)/100;
     cc.balance=Math.round((cc.balance-payableRounded)*100)/100;
     if(cc.balance<0)cc.balance=0;
-    state.txs.unshift({id:safeNextId(),type:'transfer',amount:payableRounded,cat:'轉帳',note:`自動繳費 ${cc.name}`,date:today(),source:String(bank.id),optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
-    saveCache();syncAll();
+    const apTx={id:safeNextId(),type:'transfer',amount:payableRounded,cat:'轉帳',note:`自動繳費 ${cc.name}`,date:today(),source:String(bank.id),optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0};
+    state.txs.unshift(apTx);
+    saveCache();syncTxAppend(apTx);
   });
 }
 
@@ -1559,14 +1607,15 @@ function addEntry(){
     state.txs.sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('f-amt').value='';document.getElementById('f-note').value='';
     isOpt=false;isInst=false;updateOptUI();updateInstUI();document.getElementById('inst-fields').style.display='none';
-    saveCache();render();syncAll();return;
+    saveCache();render();syncTxsAndAccounts();return; // bulk write for installments
   }
   const id=safeNextId();
-  state.txs.unshift({id,type:txType,amount:a,cat,note,date,source,optional:txType==='expense'?isOpt:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
+  const newTx={id,type:txType,amount:a,cat,note,date,source,optional:txType==='expense'?isOpt:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0};
+  state.txs.unshift(newTx);
   if(txType==='expense'&&source){const ac=state.accounts.find(x=>String(x.id)===source);if(ac)ac.balance=Math.round((ac.balance-a)*100)/100;}
   if(txType==='income'&&source){const ac=state.accounts.find(x=>String(x.id)===source);if(ac)ac.balance=Math.round((ac.balance+a)*100)/100;}
   document.getElementById('f-amt').value='';document.getElementById('f-note').value='';
-  isOpt=false;updateOptUI();saveCache();render();syncAll();
+  isOpt=false;updateOptUI();saveCache();render();syncTxAppend(newTx); // ← append only
 }
 function addInvest(){
   const name=document.getElementById('fi-name').value.trim();if(!name)return showE('ferr',T('stockName')+'?');
@@ -1585,9 +1634,10 @@ function addXfr(){
   if(!fId||!tId||fId===tId)return showE('ferr',T('from')+'?');
   const from=state.accounts.find(x=>String(x.id)===fId),to=state.accounts.find(x=>String(x.id)===tId);
   if(from)from.balance=Math.round((from.balance-a)*100)/100;if(to)to.balance=Math.round((to.balance+a)*100)/100;
-  state.txs.unshift({id:safeNextId(),type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('ft-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('ft-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
+  const xfrTx={id:safeNextId(),type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('ft-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('ft-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0};
+  state.txs.unshift(xfrTx);
   document.getElementById('ft-amt').value='';document.getElementById('ft-note').value='';
-  saveCache();render();syncAll();
+  saveCache();render();syncTxAppend(xfrTx);
 }
 function doTransfer(){
   const a=parseFloat(document.getElementById('xfr-amt').value);if(!a||a<=0)return showE('xfrerr',T('amount')+'?');
@@ -1595,9 +1645,10 @@ function doTransfer(){
   if(!fId||!tId||fId===tId)return showE('xfrerr',T('from')+'?');
   const from=state.accounts.find(x=>String(x.id)===fId),to=state.accounts.find(x=>String(x.id)===tId);
   if(from)from.balance=Math.round((from.balance-a)*100)/100;if(to)to.balance=Math.round((to.balance+a)*100)/100;
-  state.txs.unshift({id:safeNextId(),type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('xfr-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('xfr-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0});
+  const xfrTx2={id:safeNextId(),type:'transfer',amount:a,cat:'轉帳',note:document.getElementById('xfr-note').value.trim()||(from?.name||'')+'→'+(to?.name||''),date:document.getElementById('xfr-date').value||today(),source:fId,optional:false,confirmed:false,installGroup:'',installIndex:0,installTotal:0};
+  state.txs.unshift(xfrTx2);
   document.getElementById('xfr-amt').value='';document.getElementById('xfr-note').value='';
-  saveCache();render();syncAll();
+  saveCache();render();syncTxAppend(xfrTx2);
 }
 function addAcct(){
   const name=document.getElementById('a-name').value.trim();if(!name)return showE('aerr',T('name')+'?');
@@ -2250,12 +2301,19 @@ function takeAssetSnapshot(){
   const todayStr=today();
   const totalAssets=state.accounts.filter(a=>a.type==='bank').reduce((s,a)=>s+a.balance,0)+state.investments.reduce((s,i)=>s+i.curPrice*i.shares,0);
   const existing=state.snapshots.findIndex(s=>s.date===todayStr);
+  const isNew=existing<0;
   if(existing>=0){state.snapshots[existing].totalAssets=totalAssets;}
   else{state.snapshots.push({date:todayStr,totalAssets});}
   state.snapshots.sort((a,b)=>a.date.localeCompare(b.date));
   saveCache();
-  // async sync snapshot to Sheets (non-blocking)
-  if(accessToken)writeSheet('AssetSnapshots',state.snapshots.map(x=>[x.date,x.totalAssets])).catch(()=>{});
+  // Smart sync: only append when it's a brand-new day's snapshot (O(1));
+  // same-day re-open just updates cache, full syncAll() will pick it up later.
+  if(accessToken&&isNew){
+    appendSheetRow('AssetSnapshots',[todayStr,totalAssets]).catch(()=>{
+      // fallback: rewrite entire sheet
+      writeSheet('AssetSnapshots',state.snapshots.map(x=>[x.date,x.totalAssets])).catch(()=>{});
+    });
+  }
 }
 function setSnapRange(days,btn){
   snapRange=days;
