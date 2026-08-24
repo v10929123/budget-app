@@ -1233,10 +1233,10 @@ async function ensureSheets(){
   try{
     const info=await shReq('GET','');
     const existing=info.sheets.map(s=>s.properties.title);
-    const needed=['Transactions','Accounts','Investments','Categories','Recurrings','Budgets','Debts','AssetSnapshots'].filter(s=>!existing.includes(s));
+    const needed=['Transactions','Accounts','Investments','Categories','Recurrings','Budgets','Debts','AssetSnapshots','Settings'].filter(s=>!existing.includes(s));
     if(needed.length){
       await shReq('POST',':batchUpdate',{requests:needed.map(title=>({addSheet:{properties:{title}}}))});
-      const headers={Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name'],Recurrings:['id','name','amount','cat','source','intervalDays','nextDate','active','note'],Budgets:['cat','amount'],Debts:['id','type','person','amount','date','dueDate','note','settled'],AssetSnapshots:['date','totalAssets']};
+      const headers={Transactions:['id','type','amount','cat','note','date','source','optional','confirmed','installGroup','installIndex','installTotal'],Accounts:['id','type','name','balance','dueDay','debitBankId','statementBuffer'],Investments:['id','invType','name','ticker','price','shares','curPrice','date','source'],Categories:['type','name'],Recurrings:['id','name','amount','cat','source','intervalDays','nextDate','active','note'],Budgets:['cat','amount'],Debts:['id','type','person','amount','date','dueDate','note','settled'],AssetSnapshots:['date','totalAssets'],Settings:['key','value']};
       await shReq('POST','/values:batchUpdate',{valueInputOption:'RAW',data:needed.map(s=>({range:`${s}!A1`,values:[headers[s]]}))});
     }
   }catch(e){setSS('err',T('initFail'));}
@@ -1273,6 +1273,17 @@ async function loadFromSheets(){
       const sRes=await shReq('GET','/values/'+encodeURIComponent('AssetSnapshots!A2:Z'));
       state.snapshots=(sRes.values||[]).filter(r=>r&&r[0]&&r[1]!==undefined).map(r=>({date:r[0],totalAssets:parseFloat(r[1])||0}));
     }catch(e2){state.snapshots=state.snapshots||[];console.warn('[loadFromSheets] AssetSnapshots:',e2.message);}
+    try{
+      const stRes=await shReq('GET','/values/'+encodeURIComponent('Settings!A2:B'));
+      const settingsMap={};(stRes.values||[]).forEach(r=>{if(r[0])settingsMap[r[0]]=r[1]||'';});
+      if(settingsMap['proxyUrl']!==undefined){
+        proxyUrl=settingsMap['proxyUrl'];
+        saveCache();
+        const inp=document.getElementById('proxy-url-inp');
+        if(inp)inp.value=proxyUrl;
+        console.log('[loadFromSheets] proxyUrl restored from Sheets');
+      }
+    }catch(e2){console.warn('[loadFromSheets] Settings:',e2.message);}
     const allIds=[...state.txs.map(x=>x.id),...state.accounts.map(x=>x.id),...state.investments.map(x=>x.id),...state.recurrings.map(x=>x.id),...(state.debts||[]).map(x=>x.id)];
     state.nextId=allIds.length>0?Math.max(...allIds)+1:1;
     saveCache();
@@ -1371,7 +1382,8 @@ async function syncAll(){
       writeSheet('Recurrings',(state.recurrings||[]).map(x=>[x.id,x.name,x.amount,x.cat,x.source||'',x.intervalDays||30,x.nextDate||today(),String(x.active!==false),x.note||''])),
       writeSheet('Budgets',Object.entries(state.budgets||{}).map(([cat,amt])=>[cat,amt])),
       writeSheet('Debts',(state.debts||[]).map(x=>[x.id,x.type,x.person,x.amount,x.date,x.dueDate||'',x.note||'',String(x.settled||false)])),
-      writeSheet('AssetSnapshots',(state.snapshots||[]).map(x=>[x.date,x.totalAssets]))
+      writeSheet('AssetSnapshots',(state.snapshots||[]).map(x=>[x.date,x.totalAssets])),
+      writeSheet('Settings',[['proxyUrl',proxyUrl],['notifEnabled',String(notifEnabled)],['notifDaysBefore',String(notifDaysBefore)]])
     ]);
     saveCache();
     const nt=new Date();
@@ -2453,8 +2465,22 @@ function saveProxyUrl(){
   proxyUrl=(document.getElementById('proxy-url-inp').value||'').trim().replace(/\/$/,'');
   saveCache();
   const st=document.getElementById('proxy-status');
-  if(st){st.style.color='var(--green)';st.textContent='✓ 已儲存';}
-  setTimeout(()=>{const s=document.getElementById('proxy-status');if(s)s.textContent='';},3000);
+  if(st){st.style.color='var(--amber)';st.textContent='⏳ 儲存中...';}
+  // Sync to Sheets so it persists across devices
+  if(accessToken){
+    writeSheet('Settings',[['proxyUrl',proxyUrl],['notifEnabled',String(notifEnabled)],['notifDaysBefore',String(notifDaysBefore)]])
+      .then(()=>{
+        if(st){st.style.color='var(--green)';st.textContent='✓ 已儲存並同步至雲端';}
+        setTimeout(()=>{const s=document.getElementById('proxy-status');if(s)s.textContent='';},3000);
+      })
+      .catch(()=>{
+        if(st){st.style.color='var(--green)';st.textContent='✓ 已儲存（本機）';}
+        setTimeout(()=>{const s=document.getElementById('proxy-status');if(s)s.textContent='';},3000);
+      });
+  } else {
+    if(st){st.style.color='var(--green)';st.textContent='✓ 已儲存（登入後可同步至雲端）';}
+    setTimeout(()=>{const s=document.getElementById('proxy-status');if(s)s.textContent='';},3000);
+  }
 }
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
