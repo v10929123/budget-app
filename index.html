@@ -679,23 +679,30 @@ input:checked+.toggle-slider:before{transform:translateX(20px)}
     const type=u.searchParams.get('type');
     const sym=u.searchParams.get('symbol')||'';
     const h={'Access-Control-Allow-Origin':'*','Content-Type':'application/json'};
+    const ua={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'};
     try{
-      let url,res,data;
+      let res,data;
       if(type==='tw'){
-        url=`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_${sym}.tw&json=1`;
+        // 自動判斷上市(TSE) / 上櫃(OTC)，都查不到才回傳空
+        res=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_${sym}.tw&json=1`,{headers:ua});
+        data=await res.json().catch(()=>({}));
+        if(!data.msgArray?.length){
+          res=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=otc_${sym}.tw&json=1`,{headers:ua});
+          data=await res.json().catch(()=>({}));
+        }
+        return new Response(JSON.stringify(data),{headers:h});
       }else if(type==='us'){
-        url=`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=1d&interval=1d`;
+        res=await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=1d&interval=1d`,{headers:ua});
       }else if(type==='gold'){
-        url=`https://data-asg.goldprice.org/GetData/USD-XAU/1`;
+        res=await fetch('https://data-asg.goldprice.org/GetData/USD-XAU/1',{headers:ua});
       }else if(type==='silver'){
-        url=`https://data-asg.goldprice.org/GetData/USD-XAG/1`;
+        res=await fetch('https://data-asg.goldprice.org/GetData/USD-XAG/1',{headers:ua});
       }else if(type==='fx'){
-        url=`https://open.er-api.com/v6/latest/USD`;
+        res=await fetch('https://open.er-api.com/v6/latest/USD',{headers:ua});
       }else return new Response('{}',{headers:h});
-      res=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}});
       data=await res.text();
       return new Response(data,{headers:h});
-    }catch(e){return new Response('{}',{headers:h});}
+    }catch(e){return new Response(JSON.stringify({error:e.message}),{headers:h});}
   }
 };</pre>
           <p style="font-size:10px;color:var(--text3);margin-top:6px">1. 前往 <a href="https://workers.cloudflare.com" target="_blank" style="color:var(--gold)">workers.cloudflare.com</a> 免費建立帳號<br>2. 新建 Worker，貼入以上程式碼並部署<br>3. 複製 Worker URL 填入上方欄位</p>
@@ -870,22 +877,35 @@ async function updateInvestmentPrices(manual){
     }
   }
 
-  // ── TW stocks via TWSE MIS (proxy if configured, direct otherwise) ──
+  // ── TW stocks via TWSE MIS (proxy → auto TSE/OTC; direct → TSE only, CORS may block) ──
+  if(!proxyUrl && stockInvs.length>0){
+    console.warn('[prices] 台股建議設定 Proxy URL 以避免 CORS 問題');
+  }
   for(const inv of stockInvs){
     const ticker=(inv.ticker||'').trim();
     if(!ticker){ failedCount++; continue; }
     try{
-      const url=proxyUrl
-        ? `${proxyUrl}?type=tw&symbol=${encodeURIComponent(ticker)}`
-        : `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_${ticker}.tw&json=1&_=${Date.now()}`;
-      const res=await fetch(url);
-      if(res.ok){
-        const data=await res.json();
-        const item=data && data.msgArray && data.msgArray[0];
-        const price=item && (parseFloat(item.z)||parseFloat(item.y));
-        if(price && price>0){ inv.curPrice=price; updatedCount++; } else { failedCount++; }
-      } else { failedCount++; }
-    }catch(e){ console.error('[prices] TWSE fetch failed for',ticker,e); failedCount++; }
+      let data;
+      if(proxyUrl){
+        const res=await fetch(`${proxyUrl}?type=tw&symbol=${encodeURIComponent(ticker)}`);
+        if(!res.ok){ failedCount++; console.warn('[prices] proxy error',ticker,res.status); continue; }
+        data=await res.json();
+      } else {
+        // Direct without proxy: try TSE then OTC (may fail due to CORS)
+        let res=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_${ticker}.tw&json=1&_=${Date.now()}`);
+        data=await res.json().catch(()=>({}));
+        if(!data.msgArray?.length){
+          res=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=otc_${ticker}.tw&json=1&_=${Date.now()}`);
+          data=await res.json().catch(()=>({}));
+        }
+      }
+      const item=data?.msgArray?.[0];
+      // item.z = 即時成交價 (盤後為 "-")；item.y = 昨收；item.pz = 昨收備用
+      const rawZ=item?.z; const rawY=item?.y||item?.pz;
+      const price=(rawZ&&rawZ!=='-'?parseFloat(rawZ):null)||(rawY&&rawY!=='-'?parseFloat(rawY):null);
+      if(price&&price>0){ inv.curPrice=price; updatedCount++; console.log('[prices] TW',ticker,'→',price); }
+      else { failedCount++; console.warn('[prices] TW no price for',ticker,'item:',JSON.stringify(item)); }
+    }catch(e){ console.error('[prices] TWSE fetch failed for',ticker,e.message); failedCount++; }
   }
 
   // ── US stocks via Yahoo Finance (requires proxy) ──
